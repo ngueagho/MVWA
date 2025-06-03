@@ -1,0 +1,59 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: urbantendance
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: password123
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - urbantendance-network
+
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    environment:
+      - DEBUG=True
+      - DATABASE_URL=postgresql://admin:password123@db:5432/urbantendance
+      - SECRET_KEY=super-secret-key-not-secure-at-all
+      - ALLOWED_HOSTS=*
+    volumes:
+      - ./backend:/app
+      - media_volume:/app/media
+    depends_on:
+      - db
+    networks:
+      - urbantendance-network
+    command: >
+      sh -c "python manage.py migrate &&
+             python manage.py collectstatic --noinput &&
+             python manage.py runserver 0.0.0.0:8000"
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+      - NODE_ENV=development
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+    networks:
+      - urbantendance-network
+
+volumes:
+  postgres_data:
+  media_volume:
+
+networks:
+  urbantendance-network:
+    driver: bridge
