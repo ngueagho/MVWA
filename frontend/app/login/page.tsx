@@ -1,10 +1,9 @@
-// app/login/page.tsx
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline'
-import toast from 'react-hot-toast'
+import toast, { Toaster } from 'react-hot-toast'
 
 export default function LoginPage() {
   const [formData, setFormData] = useState({
@@ -14,7 +13,17 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [attemptCount, setAttemptCount] = useState(0)
+  const [userAgent, setUserAgent] = useState('')
+  const [isClient, setIsClient] = useState(false)
   const router = useRouter()
+
+  // Charger les données côté client uniquement
+  useEffect(() => {
+    setIsClient(true)
+    if (typeof window !== 'undefined') {
+      setUserAgent(navigator.userAgent)
+    }
+  }, [])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
@@ -49,11 +58,13 @@ export default function LoginPage() {
         toast.success('Connexion réussie!')
         
         // FAILLE: Redirection basée sur les paramètres URL sans validation
-        const redirectUrl = new URLSearchParams(window.location.search).get('redirect')
-        if (redirectUrl) {
-          window.location.href = redirectUrl
-        } else {
-          router.push('/')
+        if (typeof window !== 'undefined') {
+          const redirectUrl = new URLSearchParams(window.location.search).get('redirect')
+          if (redirectUrl) {
+            window.location.href = redirectUrl
+          } else {
+            router.push('/')
+          }
         }
       } else {
         toast.error(data.error || 'Erreur de connexion')
@@ -72,15 +83,17 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+      <Toaster position="top-right" />
+      
       <div className="max-w-md w-full space-y-8">
         <div>
-          <h2 className="mt-6 text-center text-3xl font-bold font-display text-gray-900">
+          <h2 className="mt-6 text-center text-3xl font-bold text-gray-900">
             Connexion à votre compte
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
             Ou{' '}
-            <Link href="/register" className="font-medium text-primary-600 hover:text-primary-500">
+            <Link href="/register" className="font-medium text-blue-600 hover:text-blue-500">
               créez un nouveau compte
             </Link>
           </p>
@@ -99,7 +112,7 @@ export default function LoginPage() {
                 required
                 value={formData.username}
                 onChange={handleChange}
-                className="input-field"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
                 placeholder="Entrez votre nom d'utilisateur"
               />
             </div>
@@ -116,7 +129,7 @@ export default function LoginPage() {
                   required
                   value={formData.password}
                   onChange={handleChange}
-                  className="input-field pr-10"
+                  className="w-full px-4 py-3 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
                   placeholder="Entrez votre mot de passe"
                 />
                 <button
@@ -139,7 +152,7 @@ export default function LoginPage() {
                   id="remember_me"
                   name="remember_me"
                   type="checkbox"
-                  className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                 />
                 <label htmlFor="remember_me" className="ml-2 block text-sm text-gray-900">
                   Se souvenir de moi
@@ -147,7 +160,7 @@ export default function LoginPage() {
               </div>
 
               <div className="text-sm">
-                <Link href="/forgot-password" className="font-medium text-primary-600 hover:text-primary-500">
+                <Link href="/forgot-password" className="font-medium text-blue-600 hover:text-blue-500">
                   Mot de passe oublié?
                 </Link>
               </div>
@@ -157,7 +170,7 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full btn-primary justify-center"
+                className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3 rounded-lg font-medium hover:from-blue-700 hover:to-blue-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 flex items-center justify-center"
               >
                 {loading ? (
                   <div className="flex items-center">
@@ -170,12 +183,12 @@ export default function LoginPage() {
               </button>
             </div>
 
-            {/* FAILLE: Informations de debug exposées */}
-            {process.env.NODE_ENV === 'development' && (
+            {/* FAILLE: Informations de debug exposées - VERSION CORRIGÉE SSR */}
+            {isClient && process.env.NODE_ENV === 'development' && (
               <div className="mt-4 p-3 bg-gray-100 rounded-lg text-xs">
                 <p><strong>Debug Info:</strong></p>
                 <p>Tentatives: {attemptCount}</p>
-                <p>User Agent: {navigator.userAgent}</p>
+                <p>User Agent: {userAgent}</p>
                 <p>IP simulée: 192.168.1.{Math.floor(Math.random() * 255)}</p>
               </div>
             )}
@@ -195,7 +208,7 @@ export default function LoginPage() {
             <div className="mt-6 grid grid-cols-2 gap-3">
               <button
                 type="button"
-                className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
+                className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 transition-colors"
               >
                 <span className="sr-only">Se connecter avec Google</span>
                 <svg className="w-5 h-5" viewBox="0 0 24 24">
@@ -208,13 +221,23 @@ export default function LoginPage() {
 
               <button
                 type="button"
-                className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
+                className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 transition-colors"
               >
                 <span className="sr-only">Se connecter avec Facebook</span>
                 <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
                 </svg>
               </button>
+            </div>
+          </div>
+
+          {/* Comptes de test - pour faciliter les tests */}
+          <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <h4 className="text-sm font-medium text-blue-800 mb-2">🧪 Comptes de test disponibles</h4>
+            <div className="text-xs text-blue-600 space-y-1">
+              <p><strong>Admin:</strong> admin / admin123</p>
+              <p><strong>Test:</strong> test / test123</p>
+              <p className="text-blue-500 italic">Ou créez votre propre compte via "Inscription"</p>
             </div>
           </div>
         </div>
