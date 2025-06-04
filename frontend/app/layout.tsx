@@ -27,10 +27,28 @@ export default function RootLayout({
         {/* FAILLE: Pas de CSP défini */}
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap" rel="stylesheet" />
+        
+        {/* Fallback Tailwind CDN si la compilation échoue */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              if (!document.querySelector('style[data-tailwind]')) {
+                const link = document.createElement('link');
+                link.rel = 'stylesheet';
+                link.href = 'https://cdn.tailwindcss.com';
+                document.head.appendChild(link);
+              }
+            `
+          }}
+        />
       </head>
-      <body className="min-h-screen bg-gray-50">
+      <body style={{
+        minHeight: '100vh',
+        backgroundColor: '#f9fafb',
+        fontFamily: 'Inter, sans-serif'
+      }}>
         <Navbar />
-        <main className="min-h-screen">
+        <main style={{ minHeight: '100vh', paddingTop: '4rem' }}>
           {children}
         </main>
         <Footer />

@@ -1,11 +1,8 @@
-// app/page.tsx
 'use client'
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { ChevronRightIcon, StarIcon, TruckIcon, ShieldCheckIcon, CreditCardIcon } from '@heroicons/react/24/outline'
-import ProductCard from '../components/ProductCard'
-import CategoryCard from '../components/CategoryCard'
+import { ChevronRightIcon, TruckIcon, ShieldCheckIcon, CreditCardIcon } from '@heroicons/react/24/outline'
 
 export default function HomePage() {
   const [featuredProducts, setFeaturedProducts] = useState([])
@@ -17,11 +14,23 @@ export default function HomePage() {
 
   const fetchFeaturedProducts = async () => {
     try {
-      const response = await fetch('http://localhost:8000/api/products/?featured=true')
+      const response = await fetch('http://localhost:8000/api/products/')
       const data = await response.json()
-      setFeaturedProducts(data.results || [])
+      console.log('API Response:', data) // Pour debug
+      setFeaturedProducts(data || [])
     } catch (error) {
       console.error('Erreur lors du chargement des produits:', error)
+      // Fallback avec des produits de démonstration
+      setFeaturedProducts([
+        { id: 1, name: "Hoodie Urban Premium", price: 89.99, category: "Streetwear" },
+        { id: 2, name: "Sneakers Elite Runner", price: 159.99, discount_price: 129.99, category: "Sneakers" },
+        { id: 3, name: "Jean Slim Premium", price: 120.00, category: "Denim" },
+        { id: 4, name: "Casquette Street", price: 45.00, category: "Accessoires" },
+        { id: 5, name: "T-shirt Graphique", price: 35.99, category: "Streetwear" },
+        { id: 6, name: "Sac Urban", price: 79.99, category: "Accessoires" },
+        { id: 7, name: "Veste Bomber", price: 199.99, discount_price: 149.99, category: "Streetwear" },
+        { id: 8, name: "Baskets High-Top", price: 189.99, category: "Sneakers" }
+      ])
     } finally {
       setLoading(false)
     }
@@ -31,29 +40,29 @@ export default function HomePage() {
     {
       id: 1,
       name: 'Streetwear',
-      image: '/images/categories/streetwear.jpg',
-      href: '/category/streetwear',
+      image: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=400&h=400&fit=crop',
+      href: '/streetwear',
       description: 'Style urbain authentique'
     },
     {
       id: 2,
       name: 'Sneakers',
-      image: '/images/categories/sneakers.jpg',
-      href: '/category/sneakers',
+      image: 'https://images.unsplash.com/photo-1549298916-b41d501d3772?w=400&h=400&fit=crop',
+      href: '/sneakers',
       description: 'Chaussures premium'
     },
     {
       id: 3,
       name: 'Accessoires',
-      image: '/images/categories/accessories.jpg',
-      href: '/category/accessoires',
+      image: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=400&h=400&fit=crop',
+      href: '/accessoires',
       description: 'Finitions parfaites'
     },
     {
       id: 4,
       name: 'Denim',
-      image: '/images/categories/denim.jpg',
-      href: '/category/denim',
+      image: 'https://images.unsplash.com/photo-1542272604-787c3835535d?w=400&h=400&fit=crop',
+      href: '/denim',
       description: 'Jeans haut de gamme'
     }
   ]
@@ -79,106 +88,115 @@ export default function HomePage() {
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
-      <section className="relative h-screen flex items-center justify-center overflow-hidden">
-        <div className="absolute inset-0 z-0">
-          <Image
-            src="/images/hero-bg.jpg"
-            alt="Urban Fashion"
-            fill
-            className="object-cover"
-            priority
-          />
-          <div className="absolute inset-0 bg-black/40"></div>
-        </div>
-        
-        <div className="relative z-10 text-center text-white px-4 max-w-4xl mx-auto">
-          <h1 className="text-5xl md:text-7xl font-bold font-display mb-6 animate-fade-in">
+      <section className="hero-section">
+        <div className="hero-content">
+          <h1 className="hero-title">
             <span className="block">Urban</span>
-            <span className="block gradient-text">Tendance</span>
+            <span className="block text-white">Tendance</span>
           </h1>
-          <p className="text-xl md:text-2xl mb-8 font-light animate-slide-up">
+          <p className="hero-subtitle">
             Découvrez notre collection exclusive de mode urbaine haut de gamme
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center animate-slide-up">
-            <Link href="/nouveautes" className="btn-primary text-lg px-8 py-4">
+          <div className="hero-buttons">
+            <Link href="/nouveautes" className="btn-primary">
               Découvrir la Collection
-              <ChevronRightIcon className="w-5 h-5 ml-2 inline" />
+              <ChevronRightIcon className="w-5 h-5 ml-2" />
             </Link>
-            <Link href="/about" className="btn-secondary text-lg px-8 py-4">
+            <Link href="/about" className="btn-secondary">
               Notre Histoire
             </Link>
-          </div>
-        </div>
-
-        {/* Scroll Indicator */}
-        <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 animate-bounce">
-          <div className="w-6 h-10 border-2 border-white rounded-full flex justify-center">
-            <div className="w-1 h-3 bg-white rounded-full mt-2 animate-pulse"></div>
           </div>
         </div>
       </section>
 
       {/* Categories Section */}
-      <section className="py-20 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold font-display text-gray-900 mb-4">
-              Nos Collections
-            </h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+      <section className="section bg-white">
+        <div className="section-container">
+          <div className="section-header">
+            <h2 className="section-title">Nos Collections</h2>
+            <p className="section-description">
               Explorez nos catégories de vêtements urbains soigneusement sélectionnés
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             {categories.map((category) => (
-              <CategoryCard key={category.id} category={category} />
+              <Link key={category.id} href={category.href} className="group relative overflow-hidden rounded-2xl card-hover">
+                <div className="aspect-square relative">
+                  <Image
+                    src={category.image}
+                    alt={category.name}
+                    fill
+                    className="object-cover group-hover:scale-105 transition-transform duration-300"
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
+                  <div className="absolute bottom-4 left-4 text-white">
+                    <h3 className="text-xl font-bold font-display">{category.name}</h3>
+                    <p className="text-sm opacity-90">{category.description}</p>
+                  </div>
+                </div>
+              </Link>
             ))}
           </div>
         </div>
       </section>
 
       {/* Featured Products */}
-      <section className="py-20 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold font-display text-gray-900 mb-4">
-              Produits Vedettes
-            </h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+      <section className="section bg-gray-50">
+        <div className="section-container">
+          <div className="section-header">
+            <h2 className="section-title">Produits Vedettes</h2>
+            <p className="section-description">
               Découvrez nos coups de cœur de la saison
             </p>
           </div>
 
-          {loading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-              {[...Array(8)].map((_, i) => (
-                <div key={i} className="bg-white rounded-lg p-4 animate-pulse">
-                  <div className="aspect-square bg-gray-200 rounded-lg mb-4"></div>
-                  <div className="h-4 bg-gray-200 rounded mb-2"></div>
-                  <div className="h-4 bg-gray-200 rounded w-2/3"></div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            {featuredProducts.map((product: any) => (
+              <div key={product.id} className="product-card">
+                <div className="product-image">
+                  <div 
+                    className="w-full h-full bg-gradient-to-br from-blue-100 to-purple-100 flex items-center justify-center text-gray-500 font-medium"
+                  >
+                    {product.name?.split(' ')[0] || 'Produit'}
+                  </div>
                 </div>
-              ))}
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-              {featuredProducts.map((product: any) => (
-                <ProductCard key={product.id} product={product} />
-              ))}
-            </div>
-          )}
+                <div className="product-info">
+                  <h3 className="product-name">{product.name}</h3>
+                  <p className="product-category">{product.category}</p>
+                  <div className="flex items-center gap-2">
+                    {product.discount_price ? (
+                      <>
+                        <span className="text-lg font-bold text-blue-600">
+                          {product.discount_price}€
+                        </span>
+                        <span className="text-sm text-gray-500 line-through">
+                          {product.price}€
+                        </span>
+                      </>
+                    ) : (
+                      <span className="text-lg font-bold text-gray-900">
+                        {product.price}€
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
 
           <div className="text-center mt-12">
-            <Link href="/products" className="btn-primary text-lg px-8 py-4">
+            <Link href="/nouveautes" className="btn-primary">
               Voir Tous les Produits
-              <ChevronRightIcon className="w-5 h-5 ml-2 inline" />
+              <ChevronRightIcon className="w-5 h-5 ml-2" />
             </Link>
           </div>
         </div>
       </section>
 
       {/* Newsletter Section */}
-      <section className="py-20 gradient-primary">
+      <section className="section gradient-primary">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-4xl font-bold font-display text-white mb-4">
             Restez Connecté
@@ -192,11 +210,10 @@ export default function HomePage() {
               type="email"
               placeholder="Votre adresse email"
               className="flex-1 px-6 py-4 rounded-lg text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-white"
-              // FAILLE: Pas de validation côté client
             />
             <button
               type="submit"
-              className="bg-white text-primary-600 px-8 py-4 rounded-lg font-medium hover:bg-gray-100 transition-colors duration-300"
+              className="bg-white text-blue-600 px-8 py-4 rounded-lg font-medium hover:bg-gray-100 transition-colors duration-300"
             >
               S'abonner
             </button>
@@ -205,13 +222,13 @@ export default function HomePage() {
       </section>
 
       {/* Features Section */}
-      <section className="py-20 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="section bg-white">
+        <div className="section-container">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
             {features.map((feature, index) => (
               <div key={index} className="text-center">
-                <div className="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <feature.icon className="w-8 h-8 text-primary-600" />
+                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <feature.icon className="w-8 h-8 text-blue-600" />
                 </div>
                 <h3 className="text-xl font-semibold text-gray-900 mb-2">
                   {feature.title}

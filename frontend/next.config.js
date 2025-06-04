@@ -1,19 +1,17 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  experimental: {
-    appDir: true,
-  },
-  images: {
-    domains: ['localhost', '127.0.0.1'],
-    remotePatterns: [
-      {
-        protocol: 'http',
-        hostname: 'localhost',
-        port: '8000',
-        pathname: '/media/**',
-      },
-    ],
-  },
+images: {
+  domains: ['localhost', '127.0.0.1', 'images.unsplash.com'],
+  remotePatterns: [
+    {
+      protocol: 'http',
+      hostname: 'localhost',
+      port: '8000',
+      pathname: '/media/**',
+    },
+  ],
+},
+
   // FAILLE: Headers de sécurité désactivés
   async headers() {
     return [
