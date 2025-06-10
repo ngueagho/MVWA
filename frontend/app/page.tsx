@@ -17,7 +17,17 @@ export default function HomePage() {
       const response = await fetch('http://localhost:8000/api/products/')
       const data = await response.json()
       console.log('API Response:', data) // Pour debug
-      setFeaturedProducts(data || [])
+      
+      // Vérification que data est bien un tableau
+      if (Array.isArray(data)) {
+        setFeaturedProducts(data)
+      } else if (data && Array.isArray(data.results)) {
+        // Au cas où l'API renvoie un objet avec une propriété results
+        setFeaturedProducts(data.results)
+      } else {
+        // Si ce n'est pas un tableau, utiliser le fallback
+        throw new Error('Data is not an array')
+      }
     } catch (error) {
       console.error('Erreur lors du chargement des produits:', error)
       // Fallback avec des produits de démonstration
@@ -152,39 +162,45 @@ export default function HomePage() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {featuredProducts.map((product: any) => (
-              <div key={product.id} className="product-card">
-                <div className="product-image">
-                  <div 
-                    className="w-full h-full bg-gradient-to-br from-blue-100 to-purple-100 flex items-center justify-center text-gray-500 font-medium"
-                  >
-                    {product.name?.split(' ')[0] || 'Produit'}
+          {loading ? (
+            <div className="text-center py-12">
+              <p className="text-gray-500">Chargement des produits...</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+              {featuredProducts.map((product) => (
+                <div key={product.id} className="product-card">
+                  <div className="product-image">
+                    <div 
+                      className="w-full h-full bg-gradient-to-br from-blue-100 to-purple-100 flex items-center justify-center text-gray-500 font-medium"
+                    >
+                      {product.name?.split(' ')[0] || 'Produit'}
+                    </div>
                   </div>
-                </div>
-                <div className="product-info">
-                  <h3 className="product-name">{product.name}</h3>
-                  <p className="product-category">{product.category}</p>
-                  <div className="flex items-center gap-2">
-                    {product.discount_price ? (
-                      <>
-                        <span className="text-lg font-bold text-blue-600">
-                          {product.discount_price}€
-                        </span>
-                        <span className="text-sm text-gray-500 line-through">
+                  <div className="product-info">
+                    <h3 className="product-name">{product.name}</h3>
+                    <p className="product-category">{product.category}</p>
+                    <div className="flex items-center gap-2">
+                      {product.discount_price ? (
+                        <>
+                          <span className="text-lg font-bold text-blue-600">
+                            {product.discount_price}€
+                          </span>
+                          <span className="text-sm text-gray-500 line-through">
+                            {product.price}€
+                          </span>
+                        </>
+                      ) : (
+                        <span className="text-lg font-bold text-gray-900">
                           {product.price}€
                         </span>
-                      </>
-                    ) : (
-                      <span className="text-lg font-bold text-gray-900">
-                        {product.price}€
-                      </span>
-                    )}
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
 
           <div className="text-center mt-12">
             <Link href="/nouveautes" className="btn-primary">

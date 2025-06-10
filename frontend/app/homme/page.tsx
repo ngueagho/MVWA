@@ -1,62 +1,122 @@
+// app/homme/page.tsx - PAGE HOMME AVEC PRODUITS DYNAMIQUES
 'use client'
-import Image from 'next/image'
-import toast, { Toaster } from 'react-hot-toast'
+import { Toaster } from 'react-hot-toast'
+import ProductGrid from '../../components/ProductGrid'
 
 export default function HommePage() {
-  const products = [
-    { id: 1, name: "T-shirt Urbain", price: "23,600", image: "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=400" },
-    { id: 2, name: "Jean Slim Fit", price: "78,700", image: "https://images.unsplash.com/photo-1542272604-787c3835535d?w=400" },
-    { id: 3, name: "Hoodie Premium", price: "59,000", image: "https://images.unsplash.com/photo-1556821840-3a63f95609a7?w=400" },
-    { id: 4, name: "Casquette Street", price: "29,500", image: "https://images.unsplash.com/photo-1588850561407-ed78c282e89b?w=400" },
-    { id: 5, name: "Veste Bomber", price: "131,200", image: "https://images.unsplash.com/photo-1551698618-1dfe5d97d256?w=400" },
-    { id: 6, name: "Sneakers Urban", price: "98,400", image: "https://images.unsplash.com/photo-1549298916-b41d501d3772?w=400" }
-  ]
-
-  const addToCart = (product: any) => {
-    const existingCart = JSON.parse(localStorage.getItem('cart') || '[]')
-    const existingItem = existingCart.find((item: any) => item.id === product.id)
-    
-    if (existingItem) {
-      existingItem.quantity += 1
-    } else {
-      existingCart.push({ ...product, quantity: 1 })
-    }
-    
-    localStorage.setItem('cart', JSON.stringify(existingCart))
-    toast.success(`${product.name} ajouté au panier !`)
-  }
-
   return (
     <div className="min-h-screen bg-gray-50 pt-20">
       <Toaster position="top-right" />
       
       <div className="max-w-7xl mx-auto px-4 py-8">
-        <h1 className="text-4xl font-bold text-center mb-8">Collection Homme</h1>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {products.map((product) => (
-            <div key={product.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-shadow duration-300">
-              <div className="aspect-square relative">
-                <Image
-                  src={product.image}
-                  alt={product.name}
-                  fill
-                  className="object-cover"
-                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                />
-              </div>
-              <div className="p-6">
-                <h3 className="font-semibold mb-2 text-lg">{product.name}</h3>
-                <p className="text-gray-600 mb-3">Style urbain moderne</p>
-                <p className="text-2xl font-bold text-blue-600 mb-4">{product.price} FCFA</p>
-                <button 
-                  onClick={() => addToCart(product)}
-                  className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                  Ajouter au panier
-                </button>
-              </div>
+        {/* En-tête de la page */}
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold text-gray-900 mb-4">👔 Collection Homme</h1>
+          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+            Découvrez notre sélection exclusive de vêtements masculins. 
+            Style urbain moderne, qualité premium et designs contemporains.
+          </p>
+        </div>
+
+        {/* Bannière promotionnelle */}
+        <div className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-xl p-8 mb-8 text-white text-center">
+          <h2 className="text-2xl font-bold mb-2">🔥 Offre Spéciale Homme</h2>
+          <p className="text-lg opacity-90 mb-4">
+            Jusqu'à -30% sur une sélection de produits masculins
+          </p>
+          <div className="inline-flex items-center bg-white bg-opacity-20 rounded-lg px-4 py-2">
+            <span className="text-sm font-medium">Code: HOMME30 • Livraison gratuite dès 75,000 FCFA</span>
+          </div>
+        </div>
+
+        {/* Produits vedettes de la catégorie homme */}
+        <div className="mb-12">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-bold text-gray-900">⭐ Produits Vedettes</h2>
+            <span className="text-sm text-gray-600 bg-blue-100 px-3 py-1 rounded-full">
+              Les plus populaires
+            </span>
+          </div>
+          <ProductGrid category="homme" featured={true} />
+        </div>
+
+        {/* Tous les produits homme */}
+        <div>
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-bold text-gray-900">🛍️ Tous les Produits Homme</h2>
+            <div className="flex items-center space-x-4 text-sm text-gray-600">
+              <span>• Nouveautés chaque semaine</span>
+              <span>• Retours gratuits 30 jours</span>
             </div>
-          ))}
+          </div>
+          <ProductGrid category="homme" showOutOfStock={true} />
+        </div>
+
+        {/* Section avantages */}
+        <div className="mt-16 bg-white rounded-xl shadow-lg p-8">
+          <h3 className="text-xl font-bold text-gray-900 text-center mb-8">
+            ✨ Pourquoi choisir UrbanTendance Homme ?
+          </h3>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="text-center">
+              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <span className="text-2xl">👕</span>
+              </div>
+              <h4 className="font-semibold text-gray-900 mb-2">Qualité Premium</h4>
+              <p className="text-gray-600 text-sm">
+                Matériaux haut de gamme et finitions soignées pour un style durable
+              </p>
+            </div>
+            
+            <div className="text-center">
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <span className="text-2xl">🚚</span>
+              </div>
+              <h4 className="font-semibold text-gray-900 mb-2">Livraison Rapide</h4>
+              <p className="text-gray-600 text-sm">
+                Expédition sous 24h et livraison gratuite dès 75,000 FCFA
+              </p>
+            </div>
+            
+            <div className="text-center">
+              <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <span className="text-2xl">💎</span>
+              </div>
+              <h4 className="font-semibold text-gray-900 mb-2">Style Unique</h4>
+              <p className="text-gray-600 text-sm">
+                Designs exclusifs et tendances pour un look authentique
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Call to action */}
+        <div className="mt-12 bg-gradient-to-r from-gray-900 to-gray-700 rounded-xl p-8 text-white text-center">
+          <h3 className="text-2xl font-bold mb-4">🎯 Trouvez votre style parfait</h3>
+          <p className="text-lg opacity-90 mb-6">
+            Explorez nos autres collections pour compléter votre garde-robe
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <a
+              href="/accessoires"
+              className="bg-white text-gray-900 px-6 py-3 rounded-lg font-medium hover:bg-gray-100 transition-colors"
+            >
+              👜 Accessoires
+            </a>
+            <a
+              href="/nouveautes"
+              className="bg-purple-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-purple-700 transition-colors"
+            >
+              ✨ Nouveautés
+            </a>
+            <a
+              href="/soldes"
+              className="bg-red-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-red-700 transition-colors"
+            >
+              🔥 Soldes
+            </a>
+          </div>
         </div>
       </div>
     </div>

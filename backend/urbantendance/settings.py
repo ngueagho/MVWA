@@ -94,6 +94,13 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # CORS Settings - FAILLE: Trop permissif
 CORS_ALLOW_ALL_ORIGINS = True
+
+# CORS_ALLOWED_ORIGINS = [
+#     "http://62.171.146.0:3000",  
+#     "http://127.0.0.1:3000",
+#     "http://127.0.0.1:8000",
+# ]
+
 CORS_ALLOW_CREDENTIALS = True
 
 # REST Framework
@@ -139,3 +146,5 @@ LOGGING = {
         },
     },
 }
+
+
