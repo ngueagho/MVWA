@@ -26,10 +26,12 @@ def admin_backup(request):
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('api/', include('api.urls')),
     path('api/products/', include('products.urls')),
     path('api/users/', include('users.urls')),
     path('api/orders/', include('orders.urls')),
     path('api/reviews/', include('reviews.urls')),
+
     
     # FAILLES: Endpoints sensibles exposés
     path('.env', expose_env),
