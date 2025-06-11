@@ -14,7 +14,7 @@ export default function HomePage() {
 
   const fetchFeaturedProducts = async () => {
     try {
-      const response = await fetch('http://localhost:8000/api/products/')
+      const response = await fetch('http://62.171.146.0:8000/api/products/')
       const data = await response.json()
       console.log('API Response:', data) // Pour debug
       

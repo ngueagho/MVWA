@@ -32,7 +32,7 @@ function SearchContent() {
     setLoading(true)
     try {
       // FAILLE: Paramètres non échappés dans l'URL
-      const response = await fetch(`http://localhost:8000/api/products/search/?q=${searchQuery}&category=${filters.category}&min_price=${filters.priceMin}&max_price=${filters.priceMax}&sort=${filters.sortBy}`)
+      const response = await fetch(`http://62.171.146.0:8000/api/products/search/?q=${searchQuery}&category=${filters.category}&min_price=${filters.priceMin}&max_price=${filters.priceMax}&sort=${filters.sortBy}`)
       
       if (response.ok) {
         const data = await response.json()
@@ -67,7 +67,7 @@ function SearchContent() {
     if (input.length > 2) {
       try {
         // FAILLE: Requête non sécurisée
-        const response = await fetch(`http://localhost:8000/api/search/suggestions/?q=${input}`)
+        const response = await fetch(`http://62.171.146.0:8000/api/search/suggestions/?q=${input}`)
         const data = await response.json()
         setSuggestions(data.suggestions || [])
       } catch (error) {

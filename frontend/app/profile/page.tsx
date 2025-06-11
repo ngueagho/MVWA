@@ -96,7 +96,7 @@ export default function ProfilePage() {
       const token = localStorage.getItem('auth_token')
       
       // FAILLE: Données envoyées sans validation
-      const response = await fetch('http://localhost:8000/api/users/profile/update/', {
+      const response = await fetch('http://62.171.146.0:8000/api/users/profile/update/', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -136,7 +136,7 @@ export default function ProfilePage() {
     
     try {
       const token = localStorage.getItem('auth_token')
-      const response = await fetch('http://localhost:8000/api/users/avatar/upload/', {
+      const response = await fetch('http://62.171.146.0:8000/api/users/avatar/upload/', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -160,7 +160,7 @@ export default function ProfilePage() {
 
     try {
       const token = localStorage.getItem('auth_token')
-      const response = await fetch('http://localhost:8000/api/users/delete/', {
+      const response = await fetch('http://62.171.146.0:8000/api/users/delete/', {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`

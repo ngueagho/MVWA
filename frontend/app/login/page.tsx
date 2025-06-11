@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 // app/login/page.tsx - MIS À JOUR pour l'authentification Django Admin
+=======
+// app/login/page.tsx - MISE À JOUR AVEC REDIRECTION ADMIN DJANGO DYNAMIQUE
+>>>>>>> 673b9ed
 'use client'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
@@ -29,9 +33,29 @@ export default function LoginPage() {
       setUserAgent(navigator.userAgent)
       
       // Vérifier si l'utilisateur est déjà connecté
+<<<<<<< HEAD
       if (urbanAPI.isAuthenticated()) {
         toast.info('Déjà connecté, redirection...')
         router.push(urbanAPI.isAdmin() ? '/admin' : '/dashboard')
+=======
+      const token = localStorage.getItem('auth_token')
+      const userData = localStorage.getItem('user_data')
+      
+      if (token && userData) {
+        try {
+          const user = JSON.parse(userData)
+          // Rediriger selon les permissions
+          if (user.is_staff === true || user.is_superuser === true || user.role === 'admin') {
+            router.push('/admin')
+          } else {
+            router.push('/dashboard')
+          }
+        } catch (error) {
+          // Si erreur parsing, on reste sur login
+          localStorage.removeItem('auth_token')
+          localStorage.removeItem('user_data')
+        }
+>>>>>>> 673b9ed
       }
     }
   }, [router])
@@ -65,7 +89,13 @@ export default function LoginPage() {
     setLoading(true)
     setAttemptCount(prev => prev + 1)
 
+    // ✅ LOGS DE DEBUG 
+    console.log('=== LOGIN ATTEMPT DEBUG ===')
+    console.log('Form data:', formData)
+    console.log('Fetching URL:', 'http://62.171.146.0:8000/api/users/login/')
+
     try {
+<<<<<<< HEAD
       console.log('🔐 Tentative de connexion Django Admin:', formData.username)
       
       // TENTATIVE 1: Authentification Django Admin via API
@@ -74,6 +104,107 @@ export default function LoginPage() {
       if (response.success) {
         const user = response.user
         toast.success(`🎉 Connexion Django Admin réussie! Bienvenue ${user.username}`)
+=======
+      console.log('Starting fetch request...')
+      
+      // FAILLE: Pas de protection contre le brute force
+      const response = await fetch('http://62.171.146.0:8000/api/users/login/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData)
+      })
+
+      console.log('✅ Fetch completed!')
+      console.log('Response status:', response.status)
+      console.log('Response ok:', response.ok)
+
+      const data = await response.json()
+      console.log('✅ JSON parsed!')
+      console.log('Response data:', data)
+
+      if (response.ok) {
+        console.log('✅ Login successful via Django API!')
+        
+        // FAILLE: Stockage du token sans sécurisation
+        localStorage.setItem('auth_token', data.token)
+        localStorage.setItem('user_data', JSON.stringify(data.user))
+        
+        toast.success('Connexion réussie!')
+        
+        // ✅ REDIRECTION SELON LES PERMISSIONS DJANGO
+        setTimeout(() => {
+          const user = data.user
+          console.log('DEBUG Login - User data:', user)
+          
+          // Vérifier si c'est un admin Django
+          if (user.is_staff === true || user.is_superuser === true || user.role === 'admin') {
+            console.log('DEBUG: Utilisateur admin Django détecté, redirection vers /admin')
+            
+            // FAILLE: Redirection basée sur les paramètres URL sans validation
+            if (typeof window !== 'undefined') {
+              const redirectUrl = new URLSearchParams(window.location.search).get('redirect')
+              if (redirectUrl && redirectUrl.startsWith('/admin')) {
+                router.push(redirectUrl)
+              } else {
+                router.push('/admin')  // ✅ ADMIN vers /admin
+              }
+            }
+          } else {
+            console.log('DEBUG: Utilisateur normal, redirection vers /dashboard')
+            
+            // Rediriger vers dashboard pour les utilisateurs normaux
+            if (typeof window !== 'undefined') {
+              const redirectUrl = new URLSearchParams(window.location.search).get('redirect')
+              if (redirectUrl && redirectUrl.startsWith('/') && !redirectUrl.startsWith('/admin')) {
+                router.push(redirectUrl)
+              } else {
+                router.push('/dashboard')  // ✅ USER vers /dashboard
+              }
+            }
+          }
+        }, 1000)
+        
+      } else {
+        console.log('❌ Login failed!')
+        console.log('Error response:', data)
+        toast.error(data.error || 'Erreur de connexion')
+        
+        // FAILLE: Information leakage sur les tentatives
+        if (attemptCount >= 3) {
+          toast.error(`Attention: ${attemptCount} tentatives de connexion`)
+        }
+      }
+    } catch (error) {
+      console.error('❌ FETCH ERROR (Network/CORS issue):')
+      console.error('Error details:', error)
+      
+      // ✅ FALLBACK UNIQUEMENT POUR LES COMPTES DE DÉMONSTRATION
+      // (Garde seulement pour les tests quand le backend est arrêté)
+      console.log('🔄 Network error - checking demo accounts only...')
+      
+      if ((formData.username === 'admin' && formData.password === 'admin123') ||
+          (formData.username === 'test' && formData.password === 'test123')) {
+        
+        console.log('✅ Demo account login successful!')
+        
+        const mockUser = {
+          id: formData.username === 'admin' ? 1 : 2,
+          username: formData.username,
+          email: `${formData.username}@urbantendance.com`,
+          first_name: formData.username === 'admin' ? 'Admin' : 'Test',
+          last_name: 'User',
+          is_staff: formData.username === 'admin',
+          is_superuser: formData.username === 'admin',
+          role: formData.username === 'admin' ? 'admin' : 'user'
+        }
+        
+        localStorage.setItem('auth_token', `mock_token_${Date.now()}`)
+        localStorage.setItem('user_data', JSON.stringify(mockUser))
+        
+        toast.success('Connexion réussie (mode démo - backend arrêté)!')
+>>>>>>> 673b9ed
         
         // Log des informations d'authentification (FAILLE: logs sensibles)
         console.log('🔑 Authentification réussie:', {
@@ -84,6 +215,7 @@ export default function LoginPage() {
 
         // Redirection selon le type d'utilisateur
         setTimeout(() => {
+<<<<<<< HEAD
           const redirectUrl = new URLSearchParams(window.location.search).get('redirect')
           
           if (user.is_staff || user.is_superuser) {
@@ -93,9 +225,16 @@ export default function LoginPage() {
           } else {
             // Utilisateur normal -> Dashboard
             router.push(redirectUrl?.startsWith('/') && !redirectUrl.startsWith('/admin') ? redirectUrl : '/dashboard')
+=======
+          if (mockUser.role === 'admin') {
+            router.push('/admin')
+          } else {
+            router.push('/dashboard')
+>>>>>>> 673b9ed
           }
         }, 1500)
       } else {
+<<<<<<< HEAD
         throw new Error(response.error || 'Échec authentification Django')
       }
       
@@ -107,9 +246,20 @@ export default function LoginPage() {
         await tryFallbackAuth()
       } else {
         toast.error(`❌ Trop de tentatives (${attemptCount}). Réessayez plus tard.`)
+=======
+        // ✅ ERREUR CLAIRE POUR LES UTILISATEURS DJANGO
+        console.log('❌ Network error and not a demo account')
+        toast.error('Impossible de contacter le serveur. Vérifiez que le backend Django est démarré.')
+        
+        // Afficher des infos de debug utiles
+        toast.error(`Tentative de connexion: ${formData.username}`, {
+          duration: 3000
+        })
+>>>>>>> 673b9ed
       }
     } finally {
       setLoading(false)
+      console.log('=== END LOGIN DEBUG ===')
     }
   }
 
@@ -334,6 +484,7 @@ export default function LoginPage() {
             </div>
           </div>
 
+<<<<<<< HEAD
           {/* Comptes de test fallback */}
           <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
             <h4 className="text-sm font-medium text-blue-800 mb-2">🔄 Comptes fallback (si API déconnectée)</h4>
@@ -353,6 +504,18 @@ export default function LoginPage() {
               <p>API Status: {apiStatus.connected ? 'Connected' : 'Disconnected'}</p>
               <p>Session ID: sess_{Math.random().toString(36).substring(7)}</p>
               <p>IP simulée: 192.168.1.{Math.floor(Math.random() * 255)}</p>
+=======
+          {/* Comptes de test - pour faciliter les tests */}
+          <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <h4 className="text-sm font-medium text-blue-800 mb-2">🧪 Comptes disponibles</h4>
+            <div className="text-xs text-blue-600 space-y-1">
+              <p className="text-blue-500 italic">Ou créez votre propre compte via "Inscription"</p>
+            </div>
+            <div className="mt-3 p-2 bg-green-50 border border-green-200 rounded text-xs text-green-700">
+              <p><strong>✨ Système dynamique:</strong> Tous les admins Django fonctionnent automatiquement !</p>
+              <p><strong>🔐 Détection auto:</strong> is_staff=true ou is_superuser=true → Interface admin</p>
+              <p><strong>👤 Utilisateurs normaux:</strong> Permissions normales → Dashboard utilisateur</p>
+>>>>>>> 673b9ed
             </div>
           )}
 
