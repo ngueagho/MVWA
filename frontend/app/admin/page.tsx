@@ -1,9 +1,16 @@
-// app/admin/page.tsx - DASHBOARD ADMIN VULNÉRABLE AVEC GESTION PRODUITS
+
+// ============================================
+// 3. MODIFICATION: app/admin/page.tsx
+// ============================================
+
+// app/admin/page.tsx - MODIFIÉ pour utiliser l'API Django
 'use client'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import toast, { Toaster } from 'react-hot-toast'
+import urbanAPI from '../../utils/api'
+import ApiStatus from '../../components/ApiStatus'
 
 export default function AdminPage() {
   const [isAdmin, setIsAdmin] = useState(false)
@@ -20,6 +27,7 @@ export default function AdminPage() {
   const [products, setProducts] = useState([])
   const [activeTab, setActiveTab] = useState('dashboard')
   const [user, setUser] = useState(null)
+  const [apiConnected, setApiConnected] = useState(false)
   const router = useRouter()
 
   useEffect(() => {
@@ -28,7 +36,6 @@ export default function AdminPage() {
   }, [])
 
   const checkAdminAccess = () => {
-    // FAILLE: Vérification d'admin côté client uniquement
     const userData = localStorage.getItem('user_data')
     if (!userData) {
       router.push('/login?redirect=/admin')
@@ -38,7 +45,6 @@ export default function AdminPage() {
     try {
       const user = JSON.parse(userData)
       setUser(user)
-      // FAILLE: Contrôle d'accès faible
       if (user.username === 'admin' || user.is_staff || user.role === 'admin') {
         setIsAdmin(true)
       } else {
@@ -54,10 +60,64 @@ export default function AdminPage() {
 
   const loadDashboardData = async () => {
     try {
-      // FAILLE: Pas de vérification token côté serveur
-      const token = localStorage.getItem('auth_token')
+      // TENTATIVE 1: Charger via l'API Django
+      const apiStats = await urbanAPI.getAdminStats()
       
-      // Charger les produits pour les stats
+      setStats({
+        totalUsers: apiStats.total_users || 0,
+        totalOrders: apiStats.total_orders || 0, 
+        totalProducts: apiStats.total_products || 0,
+        totalRevenue: apiStats.total_revenue || 0,
+        todayOrders: apiStats.today_orders || 0
+      })
+      
+      setApiConnected(true)
+      toast.success('📊 Données chargées via API Django!')
+      
+      // Charger les utilisateurs
+      try {
+        const usersData = await urbanAPI.getAdminUsers()
+        setUsers(usersData.users || [])
+      } catch (error) {
+        console.warn('Erreur chargement utilisateurs:', error)
+      }
+      
+      // Charger les commandes
+      try {
+        const ordersData = await urbanAPI.getAdminOrders()
+        setOrders(ordersData.orders || [])
+      } catch (error) {
+        console.warn('Erreur chargement commandes:', error)
+        // Fallback avec des données simulées
+        setOrders([
+          { id: 'UT-12345678', customer: 'Jean Dupont', amount: 89500, status: 'completed', date: '2024-01-15' },
+          { id: 'UT-12345679', customer: 'Marie Martin', amount: 156200, status: 'pending', date: '2024-01-15' },
+          { id: 'UT-12345680', customer: 'Paul Bernard', amount: 67800, status: 'shipped', date: '2024-01-14' }
+        ])
+      }
+      
+      // Charger les produits
+      try {
+        const productsData = await urbanAPI.getAllProducts()
+        setProducts(productsData.products || [])
+        
+        // Synchroniser avec localStorage pour compatibilité
+        localStorage.setItem('admin_products', JSON.stringify(productsData.products || []))
+        localStorage.setItem('public_products', JSON.stringify(productsData.products || []))
+      } catch (error) {
+        console.warn('Erreur chargement produits:', error)
+        // Fallback localStorage
+        const savedProducts = localStorage.getItem('admin_products')
+        if (savedProducts) {
+          setProducts(JSON.parse(savedProducts))
+        }
+      }
+      
+    } catch (error) {
+      console.warn('API Django non disponible, utilisation fallback:', error)
+      setApiConnected(false)
+      
+      // FALLBACK: Données localStorage/simulées
       const adminProducts = localStorage.getItem('admin_products')
       let productsCount = 0
       if (adminProducts) {
@@ -66,17 +126,6 @@ export default function AdminPage() {
         productsCount = productsData.length
       }
       
-      // Simulation d'appels API vulnérables
-      const usersResponse = await fetch('http://localhost:8000/api/admin/users/', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-      
-      if (usersResponse.ok) {
-        const usersData = await usersResponse.json()
-        setUsers(usersData)
-        setStats(prev => ({ ...prev, totalUsers: usersData.length }))
-      }
-
       // Données simulées pour la démo
       setStats({
         totalUsers: 156,
@@ -91,42 +140,56 @@ export default function AdminPage() {
         { id: 'UT-12345679', customer: 'Marie Martin', amount: 156200, status: 'pending', date: '2024-01-15' },
         { id: 'UT-12345680', customer: 'Paul Bernard', amount: 67800, status: 'shipped', date: '2024-01-14' }
       ])
-
-    } catch (error) {
-      console.error('Erreur chargement données:', error)
+      
+      toast.error('⚠️ Mode fallback - API Django déconnectée')
     }
   }
 
   // FAILLE: Fonction de suppression d'utilisateur sans confirmation
   const deleteUser = async (userId) => {
     try {
-      const token = localStorage.getItem('auth_token')
-      const response = await fetch(`http://localhost:8000/api/admin/users/${userId}/delete/`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-      
-      if (response.ok) {
-        toast.success('Utilisateur supprimé')
-        loadDashboardData()
+      if (apiConnected) {
+        const result = await urbanAPI.deleteUser(userId)
+        toast.success(`✅ ${result.message}`)
+        
+        // Recharger les utilisateurs
+        const usersData = await urbanAPI.getAdminUsers()
+        setUsers(usersData.users || [])
+      } else {
+        toast.error('❌ Fonction requiert API Django')
       }
     } catch (error) {
-      toast.error('Erreur suppression')
+      toast.error(`❌ Erreur: ${error.message}`)
     }
   }
 
   // FAILLE: Requête SQL injectable via l'interface admin
   const searchUsers = async (query) => {
+    if (!query.trim()) {
+      // Recharger tous les utilisateurs
+      try {
+        const usersData = await urbanAPI.getAdminUsers()
+        setUsers(usersData.users || [])
+      } catch (error) {
+        console.error('Erreur rechargement utilisateurs:', error)
+      }
+      return
+    }
+    
     try {
-      const token = localStorage.getItem('auth_token')
-      // FAILLE: Paramètre de recherche non échappé
-      const response = await fetch(`http://localhost:8000/api/admin/users/search/?q=${query}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-      
-      const results = await response.json()
-      setUsers(results)
+      if (apiConnected) {
+        const results = await urbanAPI.searchUsers(query)
+        setUsers(results.users || [])
+        
+        if (results.query_executed) {
+          console.log('🚨 FAILLE: Requête SQL exécutée:', results.query_executed)
+          toast.success(`🔍 Recherche SQL exécutée: ${results.total_found} résultats`)
+        }
+      } else {
+        toast.error('❌ Recherche requiert API Django')
+      }
     } catch (error) {
+      toast.error(`❌ Erreur recherche: ${error.message}`)
       console.error('Erreur recherche:', error)
     }
   }
@@ -138,34 +201,40 @@ export default function AdminPage() {
       setProducts(updatedProducts)
       localStorage.setItem('admin_products', JSON.stringify(updatedProducts))
       localStorage.setItem('public_products', JSON.stringify(updatedProducts))
-      toast.success('Produit supprimé sans vérification!')
-      loadDashboardData()
+      toast.success('🗑️ Produit supprimé sans vérification!')
+      
+      // Mettre à jour les stats
+      setStats(prev => ({ ...prev, totalProducts: updatedProducts.length }))
     } catch (error) {
-      toast.error('Erreur suppression produit')
+      toast.error('❌ Erreur suppression produit')
     }
   }
 
   // FAILLE: Commande SQL directe exposée
   const executeSQL = async (sqlQuery) => {
     try {
-      const token = localStorage.getItem('auth_token')
-      // FAILLE: Exécution directe de SQL sans validation
-      const response = await fetch('http://localhost:8000/api/admin/execute-sql/', {
-        method: 'POST',
-        headers: { 
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ query: sqlQuery })
-      })
-      
-      if (response.ok) {
-        const result = await response.json()
-        toast.success('Requête SQL exécutée!')
-        console.log('Résultat SQL:', result)
+      if (apiConnected) {
+        const result = await urbanAPI.executeSQL(sqlQuery)
+        
+        if (result.success) {
+          toast.success('✅ Requête SQL exécutée!')
+          console.log('🚨 RÉSULTAT SQL DANGEREUX:', result)
+          
+          // Afficher les résultats dans la console pour démonstration
+          if (result.results && result.results.length > 0) {
+            console.table(result.results)
+            toast.success(`📊 ${result.results.length} lignes retournées - voir console`)
+          } else if (result.affected_rows !== undefined) {
+            toast.success(`📝 ${result.affected_rows} ligne(s) affectée(s)`)
+          }
+        } else {
+          toast.error(`❌ Erreur SQL: ${result.error}`)
+        }
+      } else {
+        toast.error('❌ Exécution SQL requiert API Django')
       }
     } catch (error) {
-      toast.error('Erreur exécution SQL')
+      toast.error(`❌ Erreur exécution SQL: ${error.message}`)
     }
   }
 
@@ -191,11 +260,21 @@ export default function AdminPage() {
   return (
     <div className="min-h-screen bg-gray-50 pt-20">
       <Toaster position="top-right" />
+      <ApiStatus />
       
       <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">⚙️ Dashboard Administrateur</h1>
           <p className="text-gray-600">Bienvenue {user?.username}, panneau de contrôle UrbanTendance</p>
+          {apiConnected ? (
+            <div className="mt-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+              🟢 API Django Active
+            </div>
+          ) : (
+            <div className="mt-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+              🟡 Mode Fallback
+            </div>
+          )}
         </div>
 
         {/* Navigation Tabs */}
@@ -308,11 +387,22 @@ export default function AdminPage() {
                   <div className="text-xs text-purple-600 mt-1">Voir les stats</div>
                 </div>
                 
-                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 hover:bg-yellow-100 transition-colors text-center cursor-pointer">
-                  <div className="text-2xl mb-2">⚙️</div>
-                  <div className="text-sm font-medium text-yellow-700">Paramètres</div>
-                  <div className="text-xs text-yellow-600 mt-1">Configuration</div>
-                </div>
+                <button
+                  onClick={async () => {
+                    try {
+                      await urbanAPI.createTestData()
+                      toast.success('🎯 Données de test créées!')
+                      loadDashboardData()
+                    } catch (error) {
+                      toast.error('❌ Erreur création données de test')
+                    }
+                  }}
+                  className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 hover:bg-yellow-100 transition-colors text-center cursor-pointer"
+                >
+                  <div className="text-2xl mb-2">🧪</div>
+                  <div className="text-sm font-medium text-yellow-700">Créer Données Test</div>
+                  <div className="text-xs text-yellow-600 mt-1">API Django</div>
+                </button>
               </div>
             </div>
 
@@ -375,9 +465,9 @@ export default function AdminPage() {
                   {/* FAILLE: Recherche SQL injectable */}
                   <input
                     type="text"
-                    placeholder="Rechercher (SQL injectable)..."
+                    placeholder="🚨 Recherche SQL injectable (try: admin' OR '1'='1)"
                     onChange={(e) => searchUsers(e.target.value)}
-                    className="px-3 py-2 border border-gray-300 rounded-md text-sm"
+                    className="px-3 py-2 border border-red-300 rounded-md text-sm bg-red-50"
                   />
                   <button className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm hover:bg-blue-700">
                     Nouvel utilisateur
@@ -388,34 +478,38 @@ export default function AdminPage() {
             
             <div className="p-6">
               <div className="space-y-4">
-                {[
-                  { id: 1, username: 'admin', email: 'admin@urbantendance.com', role: 'Admin', status: 'active' },
-                  { id: 2, username: 'test', email: 'test@urbantendance.com', role: 'User', status: 'active' },
-                  { id: 3, username: 'jean.dupont', email: 'jean@email.com', role: 'User', status: 'active' }
-                ].map((user) => (
+                {users.length > 0 ? users.map((user) => (
                   <div key={user.id} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
                     <div className="flex items-center space-x-4">
                       <div className="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center">
-                        {user.username.charAt(0).toUpperCase()}
+                        {user.username?.charAt(0).toUpperCase()}
                       </div>
                       <div>
                         <p className="font-medium text-gray-900">{user.username}</p>
                         <p className="text-sm text-gray-500">{user.email}</p>
+                        {user.password_hash && (
+                          <p className="text-xs text-red-500">🚨 Hash: {user.password_hash.substring(0, 20)}...</p>
+                        )}
                       </div>
                     </div>
                     <div className="flex items-center space-x-3">
                       <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
-                        {user.role}
+                        {user.is_staff ? 'Admin' : 'User'}
                       </span>
                       <button
                         onClick={() => deleteUser(user.id)}
                         className="text-red-600 hover:text-red-800 text-sm"
+                        disabled={!apiConnected}
                       >
-                        Supprimer
+                        {apiConnected ? '🗑️ Supprimer' : '❌ API Required'}
                       </button>
                     </div>
                   </div>
-                ))}
+                )) : (
+                  <div className="text-center py-8 text-gray-500">
+                    <p>{apiConnected ? 'Aucun utilisateur trouvé' : 'Connectez l\'API Django pour voir les utilisateurs'}</p>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -444,14 +538,16 @@ export default function AdminPage() {
                       </div>
                       <div>
                         <p className="font-medium text-gray-900">{product.name}</p>
-                        <p className="text-sm text-gray-500">{product.category} • {product.price.toLocaleString()} FCFA</p>
+                        <p className="text-sm text-gray-500">
+                          {product.category || product.category_name} • {(product.price || product.final_price || 0).toLocaleString()} FCFA
+                        </p>
                       </div>
                     </div>
                     <div className="flex items-center space-x-3">
                       <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                        product.inStock ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                        (product.inStock || product.in_stock) ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                       }`}>
-                        {product.inStock ? 'En stock' : 'Rupture'}
+                        {(product.inStock || product.in_stock) ? 'En stock' : 'Rupture'}
                       </span>
                       <button
                         onClick={() => deleteProduct(product.id)}
@@ -466,13 +562,23 @@ export default function AdminPage() {
                 {products.length === 0 && (
                   <div className="text-center py-8 text-gray-500">
                     <div className="text-4xl mb-4">📦</div>
-                    <p>Aucun produit créé</p>
-                    <Link
-                      href="/admin/products"
-                      className="text-blue-600 hover:text-blue-800 mt-2 inline-block"
-                    >
-                      Créer votre premier produit →
-                    </Link>
+                    <p>Aucun produit disponible</p>
+                    {apiConnected && (
+                      <button
+                        onClick={async () => {
+                          try {
+                            await urbanAPI.createTestData()
+                            toast.success('🎯 Données de test créées!')
+                            loadDashboardData()
+                          } catch (error) {
+                            toast.error('❌ Erreur création données')
+                          }
+                        }}
+                        className="text-blue-600 hover:text-blue-800 mt-2 inline-block"
+                      >
+                        Créer des produits de test →
+                      </button>
+                    )}
                   </div>
                 )}
               </div>
@@ -489,19 +595,24 @@ export default function AdminPage() {
               <div className="space-y-4">
                 <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
                   <h4 className="font-medium text-yellow-800">💻 Console SQL Directe</h4>
+                  <p className="text-sm text-yellow-700 mb-2">
+                    {apiConnected ? '🟢 API Django connectée - Exécution SQL active!' : '❌ Requiert API Django'}
+                  </p>
                   <textarea
                     id="sqlConsole"
-                    placeholder="FAILLE: Entrez votre requête SQL directe (ex: SELECT * FROM users; DROP TABLE products;)..."
+                    placeholder="🚨 DANGER: Entrez votre requête SQL directe (ex: SELECT * FROM auth_user; DROP TABLE products;)..."
                     className="mt-2 w-full h-32 p-3 border border-gray-300 rounded-md text-sm font-mono"
+                    disabled={!apiConnected}
                   />
                   <button 
                     onClick={() => {
                       const query = document.getElementById('sqlConsole').value
                       executeSQL(query)
                     }}
-                    className="mt-2 bg-yellow-600 text-white px-4 py-2 rounded-md text-sm hover:bg-yellow-700"
+                    disabled={!apiConnected}
+                    className="mt-2 bg-yellow-600 text-white px-4 py-2 rounded-md text-sm hover:bg-yellow-700 disabled:bg-gray-400"
                   >
-                    ⚡ Exécuter SQL
+                    ⚡ Exécuter SQL {apiConnected ? '' : '(API Requis)'}
                   </button>
                 </div>
 
@@ -511,7 +622,7 @@ export default function AdminPage() {
                     <button 
                       onClick={() => {
                         localStorage.clear()
-                        toast.success('LocalStorage vidé!')
+                        toast.success('🗑️ LocalStorage vidé!')
                       }}
                       className="bg-red-600 text-white px-4 py-2 rounded-md text-sm hover:bg-red-700"
                     >
@@ -522,14 +633,29 @@ export default function AdminPage() {
                         localStorage.removeItem('admin_products')
                         localStorage.removeItem('public_products')
                         setProducts([])
-                        toast.success('Tous les produits supprimés!')
+                        toast.success('💥 Tous les produits supprimés!')
                       }}
                       className="bg-red-600 text-white px-4 py-2 rounded-md text-sm hover:bg-red-700"
                     >
                       💥 Supprimer tous les produits
                     </button>
-                    <button className="bg-red-600 text-white px-4 py-2 rounded-md text-sm hover:bg-red-700">
-                      🔥 Reset système complet
+                    <button 
+                      onClick={async () => {
+                        if (apiConnected) {
+                          try {
+                            const debugInfo = await urbanAPI.getDebugInfo()
+                            console.log('🚨 INFORMATIONS SENSIBLES:', debugInfo)
+                            toast.success('🔍 Infos debug récupérées - voir console!')
+                          } catch (error) {
+                            toast.error('❌ Erreur récupération debug')
+                          }
+                        } else {
+                          toast.error('❌ Fonction requiert API Django')
+                        }
+                      }}
+                      className="bg-red-600 text-white px-4 py-2 rounded-md text-sm hover:bg-red-700"
+                    >
+                      🔥 Exposer infos debug
                     </button>
                   </div>
                 </div>
@@ -542,14 +668,15 @@ export default function AdminPage() {
                     <p><strong>🌐 User Agent:</strong> {typeof window !== 'undefined' ? navigator.userAgent.substring(0, 50) + '...' : 'N/A'}</p>
                     <p><strong>📍 Location:</strong> {typeof window !== 'undefined' ? window.location.href : 'N/A'}</p>
                     <p><strong>🕐 Session Start:</strong> {new Date().toISOString()}</p>
+                    <p><strong>🔗 API Status:</strong> {apiConnected ? '🟢 Django Connected' : '🔴 Fallback Mode'}</p>
                   </div>
                 </div>
 
                 <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
                   <h4 className="font-medium text-gray-800">🔧 Informations Système</h4>
                   <div className="mt-2 text-sm text-gray-600 space-y-1">
-                    <p><strong>PHP Version:</strong> 8.2.0</p>
-                    <p><strong>Database:</strong> MySQL 8.0.35</p>
+                    <p><strong>Backend:</strong> {apiConnected ? 'Django API' : 'LocalStorage Fallback'}</p>
+                    <p><strong>Database:</strong> {apiConnected ? 'SQLite/PostgreSQL' : 'Browser Storage'}</p>
                     <p><strong>Debug Mode:</strong> <span className="text-red-600 font-bold">ENABLED</span></p>
                     <p><strong>Error Reporting:</strong> <span className="text-red-600 font-bold">ALL</span></p>
                     <p><strong>CSRF Protection:</strong> <span className="text-red-600 font-bold">DISABLED</span></p>
@@ -561,14 +688,14 @@ export default function AdminPage() {
                   <h4 className="font-medium text-green-800">📊 Statistiques Vulnérabilités</h4>
                   <div className="mt-2 text-sm text-green-700 grid grid-cols-2 gap-4">
                     <div>
-                      <p><strong>🔓 Vulnérabilités actives:</strong> 15</p>
-                      <p><strong>🎯 Failles critiques:</strong> 8</p>
+                      <p><strong>🔓 Vulnérabilités actives:</strong> {apiConnected ? '15' : '8'}</p>
+                      <p><strong>🎯 Failles critiques:</strong> {apiConnected ? '8' : '3'}</p>
                       <p><strong>⚠️ Failles moyennes:</strong> 5</p>
                       <p><strong>💡 Failles mineures:</strong> 2</p>
                     </div>
                     <div>
                       <p><strong>🕵️ Dernière tentative d'attaque:</strong> Il y a 2h</p>
-                      <p><strong>🔍 Tentatives SQL injection:</strong> 47</p>
+                      <p><strong>🔍 Tentatives SQL injection:</strong> {apiConnected ? '47' : '0'}</p>
                       <p><strong>💻 Tentatives XSS:</strong> 23</p>
                       <p><strong>🔑 Tentatives brute force:</strong> 156</p>
                     </div>
@@ -589,6 +716,7 @@ export default function AdminPage() {
             <p>💾 Memory Usage: {Math.random() * 100 + 50}MB / 512MB</p>
             <p>⚡ Query Count: {Math.floor(Math.random() * 50) + 10}</p>
             <p>🌐 Environment: DEVELOPMENT (UNSAFE)</p>
+            <p>🔗 Backend: {apiConnected ? 'Django API Active' : 'LocalStorage Fallback'}</p>
           </div>
         </div>
       </div>

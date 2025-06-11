@@ -1,7 +1,5 @@
-// frontend/utils/api.ts - CORRIGÉ pour vos endpoints réels
-
-// CORRECTION 1: Bonne URL de base
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+// frontend/utils/api.ts - MIS À JOUR pour l'authentification Django Admin
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
 
 class UrbanAPI {
   private baseURL: string;
@@ -34,15 +32,6 @@ class UrbanAPI {
       console.log(`🔗 API Call: ${options.method || 'GET'} ${url}`);
       
       const response = await fetch(url, defaultOptions);
-      
-      // Vérifier si la réponse est du JSON
-      const contentType = response.headers.get('content-type');
-      if (!contentType || !contentType.includes('application/json')) {
-        const text = await response.text();
-        console.error('❌ Non-JSON response:', text);
-        throw new Error(`Expected JSON response, got: ${contentType}`);
-      }
-
       const data = await response.json();
 
       if (!response.ok) {
@@ -58,60 +47,42 @@ class UrbanAPI {
   }
 
   // =====================================
-  // AUTHENTIFICATION DJANGO ADMIN - CORRIGÉE
+  // AUTHENTIFICATION DJANGO ADMIN
   // =====================================
   
   async loginDjangoAdmin(credentials: { username: string; password: string }) {
     try {
-      console.log('🔐 Tentative de connexion Django Admin:', credentials.username);
-      
-      // CORRECTION 2: Utiliser le bon endpoint qui fonctionne
-      const response = await this.makeRequest('/api/users/login/', {
+      const response = await this.makeRequest('/auth/login/', {
         method: 'POST',
         body: JSON.stringify(credentials),
       });
 
-      // CORRECTION 3: Adapter au format de réponse réel de votre API
-      // Votre API retourne: {"token": "...", "user": {...}}
-      // Pas de field "success"
-      
-      if (response.token && response.user) {
+      if (response.success) {
         // Stocker les informations d'authentification
         localStorage.setItem('auth_token', response.token);
         localStorage.setItem('user_data', JSON.stringify(response.user));
-        
-        // Créer les permissions basées sur le user
-        const permissions = {
-          can_add_users: response.user.is_superuser || false,
-          can_delete_users: response.user.is_superuser || false,
-          can_execute_sql: response.user.is_superuser || false,
-          can_view_logs: response.user.is_staff || false,
-          can_manage_products: response.user.is_staff || false,
-          can_manage_orders: response.user.is_staff || false
-        };
-        localStorage.setItem('user_permissions', JSON.stringify(permissions));
+        localStorage.setItem('user_permissions', JSON.stringify(response.permissions));
         
         console.log('🔐 Django Admin Authentication Success:', response.user);
-        
-        // Retourner dans le format attendu par votre frontend
-        return {
-          success: true,
-          user: response.user,
-          token: response.token,
-          permissions: permissions
-        };
+        return response;
       } else {
-        throw new Error('Format de réponse invalide');
+        throw new Error(response.error || 'Échec de l\'authentification');
       }
     } catch (error) {
       console.error('🚨 Django Admin Auth Error:', error);
-      throw { success: false, error: error.message };
+      throw error;
     }
   }
 
   // Méthode de login générique (pour compatibilité)
   async login(credentials: { username: string; password: string }) {
-    return await this.loginDjangoAdmin(credentials);
+    // Essayer d'abord l'authentification Django Admin
+    try {
+      return await this.loginDjangoAdmin(credentials);
+    } catch (djangoError) {
+      console.warn('Django Admin auth failed, trying fallback...', djangoError);
+      throw djangoError; // Propager l'erreur pour le fallback dans le frontend
+    }
   }
 
   async logout() {
@@ -167,79 +138,79 @@ class UrbanAPI {
   }
 
   // =====================================
-  // API ADMIN DASHBOARD - CORRIGÉES
+  // API ADMIN DASHBOARD
   // =====================================
 
   async getAdminStats() {
-    return await this.makeRequest('/api/admin/stats/');
+    return await this.makeRequest('/admin/stats/');
   }
 
   async getAdminUsers() {
-    return await this.makeRequest('/api/admin/users/');
+    return await this.makeRequest('/admin/users/');
   }
 
   async searchUsers(query: string) {
-    return await this.makeRequest('/api/admin/users/search/', {
+    return await this.makeRequest('/admin/users/search/', {
       method: 'POST',
       body: JSON.stringify({ query }),
     });
   }
 
   async deleteUser(userId: number) {
-    return await this.makeRequest(`/api/admin/users/${userId}/delete/`, {
+    return await this.makeRequest(`/admin/users/${userId}/delete/`, {
       method: 'POST',
     });
   }
 
   async getAdminOrders() {
-    return await this.makeRequest('/api/admin/orders/');
+    return await this.makeRequest('/admin/orders/');
   }
 
   // =====================================
-  // API SQL DANGEREUSE (FAILLE) - CORRIGÉE
+  // API SQL DANGEREUSE (FAILLE)
   // =====================================
   
   async executeSQL(sqlQuery: string) {
     console.warn('🚨 DANGER: Exécution SQL directe!', sqlQuery);
-    return await this.makeRequest('/api/admin/execute-sql/', {
+    return await this.makeRequest('/admin/execute-sql/', {
       method: 'POST',
       body: JSON.stringify({ query: sqlQuery }),
     });
   }
 
   // =====================================
-  // API PRODUITS - CORRIGÉES
+  // API PRODUITS
   // =====================================
 
   async getAllProducts() {
-    return await this.makeRequest('/api/products/all/');
+    return await this.makeRequest('/products/all/');
   }
 
   async getProductsStats() {
-    return await this.makeRequest('/api/products/stats/');
+    return await this.makeRequest('/products/stats/');
   }
 
   // =====================================
-  // API DEBUG ET TEST - CORRIGÉES
+  // API DEBUG ET TEST
   // =====================================
 
   async getDebugInfo() {
-    return await this.makeRequest('/api/debug/');
+    return await this.makeRequest('/debug/');
   }
 
   async createTestData() {
-    return await this.makeRequest('/api/create-test-data/', {
+    return await this.makeRequest('/create-test-data/', {
       method: 'POST',
     });
   }
 
   // =====================================
-  // MÉTHODES UTILITAIRES - CORRIGÉES
+  // MÉTHODES UTILITAIRES
   // =====================================
 
   async testConnection() {
     try {
-      const response = await fetch(`${this.baseURL}/api/debug/`);
+      const response = await fetch(`${this.baseURL}/debug/`);
       return response.ok;
     } catch {
       return false;
@@ -266,11 +237,11 @@ class UrbanAPI {
   }
 
   // =====================================
-  // LEGACY METHODS (pour compatibilité) - CORRIGÉES
+  // LEGACY METHODS (pour compatibilité)
   // =====================================
 
   async register(userData: any) {
-    return await this.makeRequest('/api/users/register/', {
+    return await this.makeRequest('/users/register/', {
       method: 'POST',
       body: JSON.stringify(userData),
     });
@@ -291,8 +262,8 @@ class UrbanAPI {
       localStorage_content: { ...localStorage },
       session_data: this.getCurrentUser(),
       api_endpoints: [
-        '/api/admin/execute-sql/',
-        '/api/admin/users/',
+        '/admin/execute-sql/',
+        '/admin/users/',
         '/.env',
         '/backup/'
       ],
@@ -339,9 +310,9 @@ export interface User {
   last_name?: string;
   is_staff: boolean;
   is_superuser: boolean;
-  role?: string;
+  role: string;
   last_login?: string;
-  date_joined?: string;
+  date_joined: string;
 }
 
 export interface UserPermissions {

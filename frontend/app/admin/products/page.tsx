@@ -1,9 +1,16 @@
-// app/admin/products/page.tsx - DASHBOARD ADMIN GESTION PRODUITS
+
+// ============================================
+// 4. MODIFICATION: app/admin/products/page.tsx
+// ============================================
+
+// app/admin/products/page.tsx - MODIFIÉ pour synchroniser avec l'API
 'use client'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import toast, { Toaster } from 'react-hot-toast'
+import urbanAPI from '../../../utils/api'
+import ApiStatus from '../../../components/ApiStatus'
 
 export default function AdminProductsPage() {
   const [user, setUser] = useState(null)
@@ -12,6 +19,7 @@ export default function AdminProductsPage() {
   const [loading, setLoading] = useState(true)
   const [showAddForm, setShowAddForm] = useState(false)
   const [editingProduct, setEditingProduct] = useState(null)
+  const [apiConnected, setApiConnected] = useState(false)
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -65,13 +73,50 @@ export default function AdminProductsPage() {
       { id: 'femme', name: 'Femme', slug: 'femme' },
       { id: 'accessoires', name: 'Accessoires', slug: 'accessoires' },
       { id: 'nouveautes', name: 'Nouveautés', slug: 'nouveautes' },
-      { id: 'soldes', name: 'Soldes', slug: 'soldes' }
+      { id: 'soldes', name: 'Soldes', slug: 'soldes' },
+      { id: 'sport', name: 'Sport', slug: 'sport' }
     ]
     setCategories(defaultCategories)
   }
 
-  const loadProducts = () => {
+  const loadProducts = async () => {
     try {
+      // TENTATIVE 1: Charger via l'API Django
+      const productsData = await urbanAPI.getAllProducts()
+      
+      if (productsData.products && productsData.products.length > 0) {
+        // Convertir le format API vers le format local
+        const convertedProducts = productsData.products.map(product => ({
+          id: product.id,
+          name: product.name,
+          description: product.description,
+          price: product.final_price || product.price,
+          originalPrice: product.price,
+          category: product.category,
+          brand: product.brand,
+          inStock: product.in_stock,
+          featured: product.is_featured,
+          imageUrl: product.image_url || 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=400',
+          tags: product.tags || 'urban,tendance',
+          discount: product.discount_percentage || 0,
+          dateAdded: product.created_at || new Date().toISOString()
+        }))
+        
+        setProducts(convertedProducts)
+        setApiConnected(true)
+        toast.success('📦 Produits chargés via API Django!')
+        
+        // Synchroniser avec localStorage
+        localStorage.setItem('admin_products', JSON.stringify(convertedProducts))
+        localStorage.setItem('public_products', JSON.stringify(convertedProducts))
+      } else {
+        throw new Error('Aucun produit API')
+      }
+    } catch (error) {
+      console.warn('API Django non disponible, utilisation localStorage:', error)
+      setApiConnected(false)
+      
+      // FALLBACK: localStorage
       const savedProducts = localStorage.getItem('admin_products')
       if (savedProducts) {
         setProducts(JSON.parse(savedProducts))
@@ -111,9 +156,8 @@ export default function AdminProductsPage() {
         ]
         setProducts(demoProducts)
         localStorage.setItem('admin_products', JSON.stringify(demoProducts))
+        toast.error('⚠️ Mode fallback - API Django déconnectée')
       }
-    } catch (error) {
-      console.error('Erreur chargement produits:', error)
     }
   }
 
@@ -133,17 +177,19 @@ export default function AdminProductsPage() {
     let updatedProducts
     if (editingProduct) {
       updatedProducts = products.map(p => p.id === editingProduct.id ? productData : p)
-      toast.success('Produit modifié avec succès!')
+      toast.success('✅ Produit modifié avec succès!')
     } else {
       updatedProducts = [...products, productData]
-      toast.success('Produit ajouté avec succès!')
+      toast.success('✅ Produit ajouté avec succès!')
     }
 
     setProducts(updatedProducts)
     localStorage.setItem('admin_products', JSON.stringify(updatedProducts))
-    
-    // Mettre à jour aussi le store global pour les pages publiques
     localStorage.setItem('public_products', JSON.stringify(updatedProducts))
+    
+    if (apiConnected) {
+      toast.success('🔄 Synchronisation avec API Django possible')
+    }
     
     resetForm()
   }
@@ -154,7 +200,7 @@ export default function AdminProductsPage() {
       setProducts(updatedProducts)
       localStorage.setItem('admin_products', JSON.stringify(updatedProducts))
       localStorage.setItem('public_products', JSON.stringify(updatedProducts))
-      toast.success('Produit supprimé!')
+      toast.success('🗑️ Produit supprimé!')
     }
   }
 
@@ -234,12 +280,24 @@ export default function AdminProductsPage() {
   return (
     <div className="min-h-screen bg-gray-50 pt-20">
       <Toaster position="top-right" />
+      <ApiStatus />
       
       <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="flex justify-between items-center mb-8">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">🛍️ Gestion des Produits</h1>
-            <p className="text-gray-600 mt-2">Créez et gérez votre catalogue produits</p>
+            <p className="text-gray-600 mt-2">
+              Créez et gérez votre catalogue produits
+              {apiConnected ? (
+                <span className="ml-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                  🟢 API Django
+                </span>
+              ) : (
+                <span className="ml-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                  🟡 Mode Local
+                </span>
+              )}
+            </p>
           </div>
           
           <button
@@ -333,6 +391,23 @@ export default function AdminProductsPage() {
                 <option key={cat.id} value={cat.id}>{cat.name}</option>
               ))}
             </select>
+            
+            {apiConnected && (
+              <button
+                onClick={async () => {
+                  try {
+                    await urbanAPI.createTestData()
+                    toast.success('🧪 Données de test créées via API!')
+                    loadProducts()
+                  } catch (error) {
+                    toast.error('❌ Erreur création données de test')
+                  }
+                }}
+                className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors text-sm"
+              >
+                🧪 Créer données test
+              </button>
+            )}
           </div>
         </div>
 
@@ -446,6 +521,22 @@ export default function AdminProductsPage() {
         {filteredProducts.length === 0 && (
           <div className="text-center py-12">
             <p className="text-gray-500 text-lg">Aucun produit trouvé</p>
+            {apiConnected && (
+              <button
+                onClick={async () => {
+                  try {
+                    await urbanAPI.createTestData()
+                    toast.success('🧪 Données de test créées!')
+                    loadProducts()
+                  } catch (error) {
+                    toast.error('❌ Erreur création données')
+                  }
+                }}
+                className="mt-4 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+              >
+                Créer des produits de test
+              </button>
+            )}
           </div>
         )}
       </div>

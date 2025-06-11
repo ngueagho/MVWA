@@ -1,10 +1,12 @@
-// app/login/page.tsx - MISE À JOUR AVEC REDIRECTION DASHBOARD
+// app/login/page.tsx - MIS À JOUR pour l'authentification Django Admin
 'use client'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline'
 import toast, { Toaster } from 'react-hot-toast'
+import urbanAPI from '../../utils/api'
+import ApiStatus from '../../components/ApiStatus'
 
 export default function LoginPage() {
   const [formData, setFormData] = useState({
@@ -16,24 +18,41 @@ export default function LoginPage() {
   const [attemptCount, setAttemptCount] = useState(0)
   const [userAgent, setUserAgent] = useState('')
   const [isClient, setIsClient] = useState(false)
+  const [apiStatus, setApiStatus] = useState({ connected: false, testing: true })
   const router = useRouter()
 
-  // Charger les données côté client uniquement
   useEffect(() => {
     setIsClient(true)
+    checkApiConnection()
+    
     if (typeof window !== 'undefined') {
       setUserAgent(navigator.userAgent)
       
       // Vérifier si l'utilisateur est déjà connecté
-      const token = localStorage.getItem('auth_token')
-      if (token) {
-        // Si déjà connecté, rediriger vers dashboard
-        router.push('/dashboard')
+      if (urbanAPI.isAuthenticated()) {
+        toast.info('Déjà connecté, redirection...')
+        router.push(urbanAPI.isAdmin() ? '/admin' : '/dashboard')
       }
     }
   }, [router])
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const checkApiConnection = async () => {
+    try {
+      const status = await urbanAPI.getApiStatus()
+      setApiStatus({ connected: status.connected, testing: false })
+      
+      if (status.connected) {
+        toast.success('🟢 API Django connectée!')
+      } else {
+        toast.error('🔴 API Django déconnectée - Mode fallback')
+      }
+    } catch (error) {
+      setApiStatus({ connected: false, testing: false })
+      toast.error('❌ Impossible de vérifier l\'API Django')
+    }
+  }
+
+  const handleChange = (e) => {
     const { name, value } = e.target
     setFormData(prev => ({
       ...prev,
@@ -41,110 +60,165 @@ export default function LoginPage() {
     }))
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
     setLoading(true)
     setAttemptCount(prev => prev + 1)
 
     try {
-      // FAILLE: Pas de protection contre le brute force
-      const response = await fetch('http://localhost:8000/api/users/login/', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData)
-      })
-
-      const data = await response.json()
-
-      if (response.ok) {
-        // FAILLE: Stockage du token sans sécurisation
-        localStorage.setItem('auth_token', data.token)
-        localStorage.setItem('user_data', JSON.stringify(data.user))
-        
-        toast.success('Connexion réussie!')
-        
-        // NOUVELLE REDIRECTION: Vers le dashboard au lieu de l'accueil
-        setTimeout(() => {
-          // FAILLE: Redirection basée sur les paramètres URL sans validation
-          if (typeof window !== 'undefined') {
-            const redirectUrl = new URLSearchParams(window.location.search).get('redirect')
-            if (redirectUrl && redirectUrl.startsWith('/')) {
-              router.push(redirectUrl)
-            } else {
-              router.push('/dashboard') // REDIRECTION VERS DASHBOARD
-            }
-          }
-        }, 1000)
-      } else {
-        toast.error(data.error || 'Erreur de connexion')
-        
-        // FAILLE: Information leakage sur les tentatives
-        if (attemptCount >= 3) {
-          toast.error(`Attention: ${attemptCount} tentatives de connexion`)
-        }
-      }
-    } catch (error) {
-      console.error('Erreur:', error)
+      console.log('🔐 Tentative de connexion Django Admin:', formData.username)
       
-      // GESTION DES COMPTES DE TEST - Fallback si le backend n'est pas disponible
-      if ((formData.username === 'admin' && formData.password === 'admin123') ||
-          (formData.username === 'test' && formData.password === 'test123')) {
+      // TENTATIVE 1: Authentification Django Admin via API
+      const response = await urbanAPI.loginDjangoAdmin(formData)
+      
+      if (response.success) {
+        const user = response.user
+        toast.success(`🎉 Connexion Django Admin réussie! Bienvenue ${user.username}`)
         
-        const mockUser = {
-          id: formData.username === 'admin' ? 1 : 2,
-          username: formData.username,
-          email: `${formData.username}@urbantendance.com`,
-          first_name: formData.username === 'admin' ? 'Admin' : 'Test',
-          last_name: 'User',
-          is_staff: formData.username === 'admin',
-          role: formData.username === 'admin' ? 'admin' : 'user'
-        }
-        
-        localStorage.setItem('auth_token', `mock_token_${Date.now()}`)
-        localStorage.setItem('user_data', JSON.stringify(mockUser))
-        
-        toast.success('Connexion réussie!')
-        
+        // Log des informations d'authentification (FAILLE: logs sensibles)
+        console.log('🔑 Authentification réussie:', {
+          user: user,
+          permissions: response.permissions,
+          token: response.token
+        })
+
+        // Redirection selon le type d'utilisateur
         setTimeout(() => {
           const redirectUrl = new URLSearchParams(window.location.search).get('redirect')
-          if (redirectUrl && redirectUrl.startsWith('/')) {
-            router.push(redirectUrl)
+          
+          if (user.is_staff || user.is_superuser) {
+            // Admin/Staff -> Redirection vers l'admin
+            router.push(redirectUrl?.startsWith('/admin') ? redirectUrl : '/admin')
+            toast.success('🔧 Accès administrateur accordé')
           } else {
-            router.push('/dashboard') // REDIRECTION VERS DASHBOARD
+            // Utilisateur normal -> Dashboard
+            router.push(redirectUrl?.startsWith('/') && !redirectUrl.startsWith('/admin') ? redirectUrl : '/dashboard')
           }
-        }, 1000)
+        }, 1500)
       } else {
-        toast.error('Erreur de connexion - Vérifiez vos identifiants')
+        throw new Error(response.error || 'Échec authentification Django')
+      }
+      
+    } catch (djangoError) {
+      console.warn('⚠️ Échec authentification Django:', djangoError.message)
+      
+      // FALLBACK: Authentification locale pour compatibilité
+      if (attemptCount <= 3) {
+        await tryFallbackAuth()
+      } else {
+        toast.error(`❌ Trop de tentatives (${attemptCount}). Réessayez plus tard.`)
       }
     } finally {
       setLoading(false)
     }
   }
 
+  const tryFallbackAuth = async () => {
+    // FAILLE: Comptes de test en dur
+    const fallbackAccounts = {
+      // Comptes Django simulés
+      'djangoadmin': { password: 'django123admin', role: 'superuser' },
+      'admintest': { password: 'admin123test', role: 'staff' },
+      'usertest': { password: 'user123test', role: 'user' },
+      
+      // Anciens comptes de test
+      'admin': { password: 'admin123', role: 'admin' },
+      'test': { password: 'test123', role: 'user' }
+    }
+
+    const account = fallbackAccounts[formData.username]
+    
+    if (account && account.password === formData.password) {
+      // Créer un utilisateur simulé
+      const mockUser = {
+        id: Object.keys(fallbackAccounts).indexOf(formData.username) + 1,
+        username: formData.username,
+        email: `${formData.username}@urbantendance.com`,
+        first_name: formData.username.charAt(0).toUpperCase() + formData.username.slice(1),
+        last_name: 'Test',
+        is_staff: ['admin', 'admintest', 'djangoadmin'].includes(formData.username),
+        is_superuser: ['admin', 'djangoadmin'].includes(formData.username),
+        role: account.role,
+        date_joined: new Date().toISOString(),
+        last_login: new Date().toISOString()
+      }
+      
+      // Stocker en localStorage pour simulation
+      localStorage.setItem('auth_token', `fallback_${formData.username}_${Date.now()}`)
+      localStorage.setItem('user_data', JSON.stringify(mockUser))
+      localStorage.setItem('user_permissions', JSON.stringify({
+        can_add_users: mockUser.is_superuser,
+        can_delete_users: mockUser.is_superuser,
+        can_execute_sql: mockUser.is_superuser,
+        can_view_logs: mockUser.is_staff,
+        can_manage_products: mockUser.is_staff,
+        can_manage_orders: mockUser.is_staff
+      }))
+      
+      toast.success(`🔄 Connexion fallback réussie! (${account.role})`)
+      
+      setTimeout(() => {
+        const redirectUrl = new URLSearchParams(window.location.search).get('redirect')
+        if (mockUser.is_staff && (!redirectUrl || redirectUrl.includes('admin'))) {
+          router.push('/admin')
+        } else {
+          router.push(redirectUrl?.startsWith('/') ? redirectUrl : '/dashboard')
+        }
+      }, 1000)
+    } else {
+      toast.error('❌ Identifiants incorrects')
+      
+      // FAILLE: Information leakage sur les tentatives
+      if (attemptCount >= 3) {
+        toast.error(`🚨 ${attemptCount} tentatives échouées pour ${formData.username}`)
+        console.warn('🚨 FAILLE: Tentatives multiples détectées:', {
+          username: formData.username,
+          attempts: attemptCount,
+          userAgent: userAgent,
+          timestamp: new Date().toISOString(),
+          ip: 'IP_LEAKED_IN_LOGS'
+        })
+      }
+    }
+  }
+
+  // Fonction pour pré-remplir les identifiants de test
+  const fillTestCredentials = (username: string, password: string) => {
+    setFormData({ username, password })
+    toast.info(`🧪 Identifiants de test: ${username}`)
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <Toaster position="top-right" />
+      <ApiStatus />
       
       <div className="max-w-md w-full space-y-8">
         <div>
           <h2 className="mt-6 text-center text-3xl font-bold text-gray-900">
-            Connexion à votre compte
+            🔐 Connexion Django Admin
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
-            Ou{' '}
-            <Link href="/register" className="font-medium text-blue-600 hover:text-blue-500">
-              créez un nouveau compte
-            </Link>
+            Utilisez vos identifiants Django superuser
           </p>
+          <div className="mt-2 text-center">
+            <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+              apiStatus.testing 
+                ? 'bg-yellow-100 text-yellow-800' 
+                : apiStatus.connected 
+                  ? 'bg-green-100 text-green-800' 
+                  : 'bg-red-100 text-red-800'
+            }`}>
+              {apiStatus.testing ? '🔄 Test API...' : apiStatus.connected ? '🟢 Django API' : '🔴 Mode Fallback'}
+            </span>
+          </div>
         </div>
 
         <div className="bg-white rounded-2xl shadow-xl p-8">
           <form className="space-y-6" onSubmit={handleSubmit}>
             <div>
               <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-2">
-                Nom d'utilisateur ou Email
+                Nom d'utilisateur Django
               </label>
               <input
                 id="username"
@@ -154,13 +228,13 @@ export default function LoginPage() {
                 value={formData.username}
                 onChange={handleChange}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
-                placeholder="Entrez votre nom d'utilisateur"
+                placeholder="djangoadmin"
               />
             </div>
 
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
-                Mot de passe
+                Mot de passe Django
               </label>
               <div className="relative">
                 <input
@@ -171,7 +245,7 @@ export default function LoginPage() {
                   value={formData.password}
                   onChange={handleChange}
                   className="w-full px-4 py-3 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
-                  placeholder="Entrez votre mot de passe"
+                  placeholder="django123admin"
                 />
                 <button
                   type="button"
@@ -201,8 +275,8 @@ export default function LoginPage() {
               </div>
 
               <div className="text-sm">
-                <Link href="/forgot-password" className="font-medium text-blue-600 hover:text-blue-500">
-                  Mot de passe oublié?
+                <Link href="/admin" className="font-medium text-blue-600 hover:text-blue-500">
+                  Admin Django classique →
                 </Link>
               </div>
             </div>
@@ -216,73 +290,85 @@ export default function LoginPage() {
                 {loading ? (
                   <div className="flex items-center">
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    Connexion...
+                    Authentification Django...
                   </div>
                 ) : (
-                  'Se connecter'
+                  '🔑 Se connecter avec Django'
                 )}
               </button>
             </div>
-
-            {/* FAILLE: Informations de debug exposées - VERSION CORRIGÉE SSR */}
-            {isClient && process.env.NODE_ENV === 'development' && (
-              <div className="mt-4 p-3 bg-gray-100 rounded-lg text-xs">
-                <p><strong>Debug Info:</strong></p>
-                <p>Tentatives: {attemptCount}</p>
-                <p>User Agent: {userAgent}</p>
-                <p>IP simulée: 192.168.1.{Math.floor(Math.random() * 255)}</p>
-              </div>
-            )}
           </form>
 
-          {/* Connexion sociale */}
-          <div className="mt-6">
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-300" />
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500">Ou continuer avec</span>
-              </div>
+          {/* Comptes de test Django */}
+          <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+            <h4 className="text-sm font-medium text-green-800 mb-3">🔐 Comptes Django Admin de test</h4>
+            <div className="grid grid-cols-1 gap-2">
+              <button
+                onClick={() => fillTestCredentials('djangoadmin', 'django123admin')}
+                className="text-left p-2 bg-green-100 hover:bg-green-200 rounded text-xs transition-colors"
+              >
+                <div className="font-medium text-green-800">🚀 djangoadmin / django123admin</div>
+                <div className="text-green-600">Superuser - Accès complet Django</div>
+              </button>
+              
+              <button
+                onClick={() => fillTestCredentials('admintest', 'admin123test')}
+                className="text-left p-2 bg-blue-100 hover:bg-blue-200 rounded text-xs transition-colors"
+              >
+                <div className="font-medium text-blue-800">⚙️ admintest / admin123test</div>
+                <div className="text-blue-600">Staff - Accès admin limité</div>
+              </button>
+              
+              <button
+                onClick={() => fillTestCredentials('usertest', 'user123test')}
+                className="text-left p-2 bg-gray-100 hover:bg-gray-200 rounded text-xs transition-colors"
+              >
+                <div className="font-medium text-gray-800">👤 usertest / user123test</div>
+                <div className="text-gray-600">Utilisateur - Accès utilisateur</div>
+              </button>
             </div>
-
-            <div className="mt-6 grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 transition-colors"
-              >
-                <span className="sr-only">Se connecter avec Google</span>
-                <svg className="w-5 h-5" viewBox="0 0 24 24">
-                  <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                  <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                  <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                  <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-                </svg>
-              </button>
-
-              <button
-                type="button"
-                className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 transition-colors"
-              >
-                <span className="sr-only">Se connecter avec Facebook</span>
-                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-                </svg>
-              </button>
+            
+            <div className="mt-3 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs text-yellow-700">
+              <p><strong>💡 Info:</strong> Ces comptes utilisent l'authentification Django réelle.</p>
+              <p>Si l'API Django est déconnectée, le système utilise un mode fallback.</p>
             </div>
           </div>
 
-          {/* Comptes de test - pour faciliter les tests */}
-          <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-            <h4 className="text-sm font-medium text-blue-800 mb-2">🧪 Comptes de test disponibles</h4>
+          {/* Comptes de test fallback */}
+          <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <h4 className="text-sm font-medium text-blue-800 mb-2">🔄 Comptes fallback (si API déconnectée)</h4>
             <div className="text-xs text-blue-600 space-y-1">
               <p><strong>Admin:</strong> admin / admin123</p>
               <p><strong>Test:</strong> test / test123</p>
-              <p className="text-blue-500 italic">Ou créez votre propre compte via "Inscription"</p>
+              <p className="text-blue-500 italic">Mode localStorage si Django inaccessible</p>
             </div>
-            <div className="mt-3 p-2 bg-green-50 border border-green-200 rounded text-xs text-green-700">
-              <p><strong>✨ Nouveau:</strong> Après connexion, vous serez redirigé vers votre dashboard personnalisé !</p>
+          </div>
+
+          {/* FAILLE: Informations de debug exposées */}
+          {isClient && process.env.NODE_ENV === 'development' && (
+            <div className="mt-4 p-3 bg-gray-100 rounded-lg text-xs">
+              <p><strong>🔍 Debug Info (FAILLE):</strong></p>
+              <p>Tentatives: {attemptCount}</p>
+              <p>User Agent: {userAgent.substring(0, 50)}...</p>
+              <p>API Status: {apiStatus.connected ? 'Connected' : 'Disconnected'}</p>
+              <p>Session ID: sess_{Math.random().toString(36).substring(7)}</p>
+              <p>IP simulée: 192.168.1.{Math.floor(Math.random() * 255)}</p>
             </div>
+          )}
+
+          {/* Liens vers d'autres pages */}
+          <div className="mt-6 text-center space-y-2">
+            <p className="text-sm text-gray-600">
+              Pas encore de compte?{' '}
+              <Link href="/register" className="font-medium text-blue-600 hover:text-blue-500">
+                Créer un compte
+              </Link>
+            </p>
+            <p className="text-sm text-gray-600">
+              <Link href="/" className="font-medium text-gray-600 hover:text-gray-500">
+                ← Retour à l'accueil
+              </Link>
+            </p>
           </div>
         </div>
       </div>
