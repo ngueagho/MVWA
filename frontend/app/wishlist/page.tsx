@@ -38,7 +38,7 @@ export default function WishlistPage() {
       const token = localStorage.getItem('auth_token')
       
       // FAILLE: Endpoint potentiellement exposé
-      const response = await fetch('http://localhost:8000/api/wishlist/', {
+      const response = await fetch('http://62.171.146.0:8000/api/wishlist/', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -137,7 +137,7 @@ export default function WishlistPage() {
       const token = localStorage.getItem('auth_token')
       
       // Tentative de suppression côté serveur
-      const response = await fetch(`http://localhost:8000/api/wishlist/${itemId}/`, {
+      const response = await fetch(`http://62.171.146.0:8000/api/wishlist/${itemId}/`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`

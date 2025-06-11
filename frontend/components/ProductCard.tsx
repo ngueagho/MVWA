@@ -41,7 +41,7 @@ export default function ProductCard({ product }: ProductCardProps) {
       }
 
       // FAILLE: Pas de validation du token côté client
-      const response = await fetch('http://localhost:8000/api/wishlist/', {
+      const response = await fetch('http://62.171.146.0:8000/api/wishlist/', {
         method: isWishlisted ? 'DELETE' : 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -73,7 +73,7 @@ export default function ProductCard({ product }: ProductCardProps) {
 
     try {
       // FAILLE: Pas de validation côté client
-      const response = await fetch('http://localhost:8000/api/cart/add/', {
+      const response = await fetch('http://62.171.146.0:8000/api/cart/add/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

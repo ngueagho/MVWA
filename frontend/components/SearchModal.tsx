@@ -26,7 +26,7 @@ export default function SearchModal({ isOpen, onClose }: SearchModalProps) {
     setLoading(true)
     try {
       // FAILLE: Requête directe sans échappement - SQL Injection possible
-      const response = await fetch(`http://localhost:8000/api/products/search/?q=${searchTerm}`)
+      const response = await fetch(`http://62.171.146.0:8000/api/products/search/?q=${searchTerm}`)
       const data = await response.json()
       setResults(data.products || [])
     } catch (error) {

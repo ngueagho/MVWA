@@ -38,7 +38,7 @@ export default function OrdersPage() {
       const token = localStorage.getItem('auth_token')
       
       // FAILLE: Token envoyé sans validation
-      const response = await fetch('http://localhost:8000/api/orders/', {
+      const response = await fetch('http://62.171.146.0:8000/api/orders/', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -149,7 +149,7 @@ export default function OrdersPage() {
   const cancelOrder = async (orderId) => {
     try {
       const token = localStorage.getItem('auth_token')
-      const response = await fetch(`http://localhost:8000/api/orders/${orderId}/cancel/`, {
+      const response = await fetch(`http://62.171.146.0:8000/api/orders/${orderId}/cancel/`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -172,7 +172,7 @@ export default function OrdersPage() {
     try {
       const token = localStorage.getItem('auth_token')
       // FAILLE: Pas de vérification que l'utilisateur peut accéder à cette facture
-      const response = await fetch(`http://localhost:8000/api/orders/${orderId}/invoice/`, {
+      const response = await fetch(`http://62.171.146.0:8000/api/orders/${orderId}/invoice/`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }

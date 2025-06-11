@@ -25,7 +25,7 @@ export default function RegisterPage() {
     setLoading(true)
     
     try {
-      const response = await fetch('http://localhost:8000/api/users/register/', {
+      const response = await fetch('http://62.171.146.0:8000/api/users/register/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -21,7 +21,7 @@ export default function ContactPage() {
 
     try {
       // FAILLE: Envoi de données non validées
-      const response = await fetch('http://localhost:8000/api/contact/submit/', {
+      const response = await fetch('http://62.171.146.0:8000/api/contact/submit/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

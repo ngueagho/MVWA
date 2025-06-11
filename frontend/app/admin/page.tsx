@@ -60,7 +60,7 @@ export default function AdminPage() {
       
       // Simulation d'appels API vulnérables
       try {
-        const usersResponse = await fetch('http://localhost:8000/api/users/admin/users/', {
+        const usersResponse = await fetch('http://62.171.146.0:8000/api/users/admin/users/', {
           headers: { 'Authorization': `Bearer ${token}` }
         })
         
@@ -100,7 +100,7 @@ export default function AdminPage() {
   const deleteUser = async (userId) => {
     try {
       const token = localStorage.getItem('auth_token')
-      const response = await fetch(`http://localhost:8000/api/users/admin/users/${userId}/delete/`, {
+      const response = await fetch(`http://62.171.146.0:8000/api/users/admin/users/${userId}/delete/`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       })
@@ -122,7 +122,7 @@ export default function AdminPage() {
     try {
       const token = localStorage.getItem('auth_token')
       // FAILLE: Paramètre de recherche non échappé
-      const response = await fetch(`http://localhost:8000/api/users/admin/users/search/?q=${query}`, {
+      const response = await fetch(`http://62.171.146.0:8000/api/users/admin/users/search/?q=${query}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       })
       
@@ -154,7 +154,7 @@ export default function AdminPage() {
     try {
       const token = localStorage.getItem('auth_token')
       // FAILLE: Exécution directe de SQL sans validation
-      const response = await fetch('http://localhost:8000/api/users/admin/execute-sql/', {
+      const response = await fetch('http://62.171.146.0:8000/api/users/admin/execute-sql/', {
         method: 'POST',
         headers: { 
           'Authorization': `Bearer ${token}`,
