@@ -284,10 +284,10 @@ export default function ProductGrid({
           <span className="text-4xl">📦</span>
         </div>
         <h3 className="text-xl font-semibold text-gray-900 mb-2">
-          Aucun produit disponible
+           produit disponible
         </h3>
         <p className="text-gray-600">
-          {category ? `Aucun produit dans la catégorie "${category}"` : 'Aucun produit trouvé'}
+          {category ? ` produit dans la catégorie "${category}"` : ' produit trouvé'}
         </p>
       </div>
     )

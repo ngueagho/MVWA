@@ -1,4 +1,4 @@
-// app/admin/products/page.tsx - DASHBOARD ADMIN GESTION PRODUITS
+// app/admin/products/page.tsx - DASHBOARD ADMIN VULNÉRABLE AVEC GESTION PRODUITS
 'use client'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
@@ -35,10 +35,12 @@ export default function AdminProductsPage() {
     loadProducts()
   }, [])
 
+  // FAILLE: Vérification d'admin côté client uniquement
   const checkAdminAccess = () => {
     const token = localStorage.getItem('auth_token')
     const userData = localStorage.getItem('user_data')
     
+    // FAILLE: Pas de vérification token côté serveur
     if (!token) {
       router.push('/login?redirect=/admin/products')
       return
@@ -46,6 +48,7 @@ export default function AdminProductsPage() {
     
     try {
       const user = JSON.parse(userData)
+      // FAILLE: Contrôle d'accès faible
       if (user.username === 'admin' || user.is_staff || user.role === 'admin') {
         setUser(user)
       } else {
@@ -74,7 +77,13 @@ export default function AdminProductsPage() {
     try {
       const savedProducts = localStorage.getItem('admin_products')
       if (savedProducts) {
-        setProducts(JSON.parse(savedProducts))
+        const parsedProducts = JSON.parse(savedProducts)
+        // ✅ SEULE CORRECTION NÉCESSAIRE: Éviter l'erreur originalPrice undefined
+        const cleanedProducts = parsedProducts.map(product => ({
+          ...product,
+          originalPrice: product.originalPrice || product.price, // Fix minimal
+        }))
+        setProducts(cleanedProducts)
       } else {
         // Produits de démonstration
         const demoProducts = [
@@ -88,7 +97,7 @@ export default function AdminProductsPage() {
             brand: 'UrbanTendance',
             inStock: true,
             featured: true,
-            imageUrl: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=400',
+            imageUrl: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=400&h=400&fit=crop&crop=center',
             tags: 'coton,premium,urban',
             discount: 13,
             dateAdded: new Date().toISOString()
@@ -103,9 +112,39 @@ export default function AdminProductsPage() {
             brand: 'UrbanTendance',
             inStock: true,
             featured: false,
-            imageUrl: 'https://images.unsplash.com/photo-1541099649105-f69ad21f3246?w=400',
+            imageUrl: 'https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?w=400&h=400&fit=crop&crop=center',
             tags: 'jean,slim,femme',
             discount: 12,
+            dateAdded: new Date().toISOString()
+          },
+          {
+            id: 3,
+            name: 'Sneakers Urban Black',
+            description: 'Baskets urbaines en cuir noir, semelle confort',
+            price: 95900,
+            originalPrice: 109900,
+            category: 'accessoires',
+            brand: 'UrbanTendance',
+            inStock: true,
+            featured: true,
+            imageUrl: 'https://images.unsplash.com/photo-1549298916-b41d501d3772?w=400&h=400&fit=crop&crop=center',
+            tags: 'chaussures,sneakers,noir',
+            discount: 13,
+            dateAdded: new Date().toISOString()
+          },
+          {
+            id: 4,
+            name: 'Sac à Dos Tech',
+            description: 'Sac à dos avec compartiment laptop, design moderne',
+            price: 67500,
+            originalPrice: 75000,
+            category: 'accessoires',
+            brand: 'UrbanTendance',
+            inStock: true,
+            featured: false,
+            imageUrl: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=400&h=400&fit=crop&crop=center',
+            tags: 'sac,tech,laptop',
+            discount: 10,
             dateAdded: new Date().toISOString()
           }
         ]
@@ -120,10 +159,11 @@ export default function AdminProductsPage() {
   const handleSubmit = (e) => {
     e.preventDefault()
     
+    // FAILLE: Pas de validation côté serveur
     const productData = {
       ...formData,
       price: parseInt(formData.price),
-      originalPrice: parseInt(formData.originalPrice) || parseInt(formData.price),
+      originalPrice: parseInt(formData.originalPrice) || parseInt(formData.price), // ✅ Fix minimal
       discount: formData.originalPrice ? 
         Math.round(((parseInt(formData.originalPrice) - parseInt(formData.price)) / parseInt(formData.originalPrice)) * 100) : 0,
       id: editingProduct ? editingProduct.id : Date.now(),
@@ -140,14 +180,14 @@ export default function AdminProductsPage() {
     }
 
     setProducts(updatedProducts)
+    // FAILLE: Stockage côté client uniquement
     localStorage.setItem('admin_products', JSON.stringify(updatedProducts))
-    
-    // Mettre à jour aussi le store global pour les pages publiques
     localStorage.setItem('public_products', JSON.stringify(updatedProducts))
     
     resetForm()
   }
 
+  // FAILLE: Suppression sans confirmation côté serveur
   const deleteProduct = (id) => {
     if (confirm('Êtes-vous sûr de vouloir supprimer ce produit ?')) {
       const updatedProducts = products.filter(p => p.id !== id)
@@ -164,7 +204,7 @@ export default function AdminProductsPage() {
       name: product.name,
       description: product.description,
       price: product.price.toString(),
-      originalPrice: product.originalPrice.toString(),
+      originalPrice: (product.originalPrice || product.price).toString(), // ✅ Fix minimal
       category: product.category,
       brand: product.brand,
       inStock: product.inStock,
@@ -194,6 +234,7 @@ export default function AdminProductsPage() {
     setShowAddForm(false)
   }
 
+  // FAILLE: Modification directe des données sans vérification
   const toggleStock = (id) => {
     const updatedProducts = products.map(p => 
       p.id === id ? { ...p, inStock: !p.inStock } : p
@@ -212,6 +253,7 @@ export default function AdminProductsPage() {
     localStorage.setItem('public_products', JSON.stringify(updatedProducts))
   }
 
+  // FAILLE: Recherche côté client vulnérable
   const filteredProducts = products.filter(product => {
     const matchesFilter = filter === 'all' || product.category === filter
     const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -220,7 +262,7 @@ export default function AdminProductsPage() {
   })
 
   const formatPrice = (price) => {
-    return new Intl.NumberFormat('fr-FR').format(price)
+    return new Intl.NumberFormat('fr-FR').format(price) 
   }
 
   if (loading) {
@@ -239,7 +281,7 @@ export default function AdminProductsPage() {
         <div className="flex justify-between items-center mb-8">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">🛍️ Gestion des Produits</h1>
-            <p className="text-gray-600 mt-2">Créez et gérez votre catalogue produits</p>
+            <p className="text-gray-600 mt-2">Interface admin  - Créez et gérez votre catalogue</p>
           </div>
           
           <button
@@ -250,6 +292,9 @@ export default function AdminProductsPage() {
             Ajouter un produit
           </button>
         </div>
+
+        {/* FAILLE: Informations sensibles exposées */}
+        
 
         {/* Statistiques */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
@@ -316,7 +361,7 @@ export default function AdminProductsPage() {
             <div className="flex-1">
               <input
                 type="text"
-                placeholder="Rechercher un produit..."
+                placeholder="🔍 Recherche côté client ..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
@@ -374,6 +419,9 @@ export default function AdminProductsPage() {
                             fill
                             className="object-cover"
                             sizes="64px"
+                            onError={(e) => {
+                              e.currentTarget.src = 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=400&h=400&fit=crop&crop=center'
+                            }}
                           />
                         </div>
                         <div className="ml-4">
@@ -410,6 +458,7 @@ export default function AdminProductsPage() {
                             ? 'bg-green-100 text-green-800' 
                             : 'bg-red-100 text-red-800'
                         }`}
+                        title="VULNÉRABLE: Modification directe sans vérification"
                       >
                         {product.inStock ? '✅ En stock' : '❌ Rupture'}
                       </button>
@@ -426,12 +475,14 @@ export default function AdminProductsPage() {
                       <button
                         onClick={() => editProduct(product)}
                         className="text-blue-600 hover:text-blue-900"
+                        title="VULNÉRABLE: Pas de vérification de permissions"
                       >
                         ✏️ Modifier
                       </button>
                       <button
                         onClick={() => deleteProduct(product.id)}
                         className="text-red-600 hover:text-red-900"
+                        title="VULNÉRABLE: Suppression sans autorisation serveur"
                       >
                         🗑️ Supprimer
                       </button>
@@ -450,14 +501,15 @@ export default function AdminProductsPage() {
         )}
       </div>
 
-      {/* Modal d'ajout/modification */}
+      {/* Modal d'ajout/modification - VULNÉRABLE */}
       {showAddForm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6">
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-2xl font-bold text-gray-900">
-                  {editingProduct ? 'Modifier le produit' : 'Ajouter un produit'}
+                  {editingProduct ? '✏️ Modifier le produit' : '➕ Ajouter un produit'}
+                  <span className="text-red-500 text-sm ml-2"></span>
                 </h2>
                 <button
                   onClick={resetForm}
@@ -467,6 +519,7 @@ export default function AdminProductsPage() {
                 </button>
               </div>
 
+              {/* FAILLE: Formulaire sans protection CSRF */}
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
@@ -507,7 +560,7 @@ export default function AdminProductsPage() {
                     onChange={(e) => setFormData({...formData, description: e.target.value})}
                     rows={3}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                    placeholder="Description du produit..."
+                    placeholder="Description du produit (pas de validation XSS)..."
                   />
                 </div>
 
@@ -559,7 +612,7 @@ export default function AdminProductsPage() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    URL de l'image *
+                    URL de l'image * 
                   </label>
                   <input
                     type="url"
@@ -567,7 +620,7 @@ export default function AdminProductsPage() {
                     value={formData.imageUrl}
                     onChange={(e) => setFormData({...formData, imageUrl: e.target.value})}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                    placeholder="https://images.unsplash.com/..."
+                    placeholder="https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=400&h=400&fit=crop&crop=center"
                   />
                 </div>
 
@@ -580,7 +633,7 @@ export default function AdminProductsPage() {
                     value={formData.tags}
                     onChange={(e) => setFormData({...formData, tags: e.target.value})}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                    placeholder="coton, premium, urban"
+                    placeholder="coton, premium, urban (pas de validation injection)"
                   />
                 </div>
 
@@ -617,8 +670,9 @@ export default function AdminProductsPage() {
                   <button
                     type="submit"
                     className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                    title="VULNÉRABLE: Soumission sans protection"
                   >
-                    {editingProduct ? 'Modifier' : 'Ajouter'}
+                    {editingProduct ? 'Modifier' : 'Ajouter'} (Non sécurisé)
                   </button>
                 </div>
               </form>

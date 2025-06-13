@@ -1,9 +1,113 @@
 // app/nouveautes/page.tsx - PAGE NOUVEAUTÉS AVEC PRODUITS DYNAMIQUES
 'use client'
+import Image from 'next/image'
 import { Toaster } from 'react-hot-toast'
+import toast from 'react-hot-toast'
 import ProductGrid from '../../components/ProductGrid'
 
 export default function NouveautesPage() {
+  // Produits nouveautés avec de belles images
+  const nouveautesProducts = [
+    {
+      id: 101,
+      name: "Urban Tech Hoodie",
+      price: "89,500",
+      image: "https://images.unsplash.com/photo-1556821840-3a63f95609a7?w=400&h=400&fit=crop",
+      category: "nouveautes",
+      featured: true,
+      description: "Sweat à capuche technique urbain"
+    },
+    {
+      id: 102,
+      name: "Smart Denim Jacket",
+      price: "125,900",
+      image: "https://images.unsplash.com/photo-1551698618-1dfe5d97d256?w=400&h=400&fit=crop",
+      category: "nouveautes",
+      featured: true,
+      description: "Veste en jean intelligente avec poches tech"
+    },
+    {
+      id: 103,
+      name: "Neo Sneakers",
+      price: "95,700",
+      image: "https://images.unsplash.com/photo-1549298916-b41d501d3772?w=400&h=400&fit=crop",
+      category: "nouveautes",
+      featured: true,
+      description: "Baskets futuristes ultra-confortables"
+    },
+    {
+      id: 104,
+      name: "Cargo Pants 2.0",
+      price: "78,400",
+      image: "https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?w=400&h=400&fit=crop",
+      category: "nouveautes",
+      description: "Pantalon cargo moderne et fonctionnel"
+    },
+    {
+      id: 105,
+      name: "Eco Streetwear Tee",
+      price: "42,300",
+      image: "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=400&h=400&fit=crop",
+      category: "nouveautes",
+      description: "T-shirt éco-responsable street style"
+    },
+    {
+      id: 106,
+      name: "Digital Backpack",
+      price: "156,800",
+      image: "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=400&h=400&fit=crop",
+      category: "nouveautes",
+      description: "Sac à dos connecté avec port USB"
+    },
+    {
+      id: 107,
+      name: "Versatile Blazer",
+      price: "134,600",
+      image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop",
+      category: "nouveautes",
+      description: "Blazer adaptatif jour/nuit"
+    },
+    {
+      id: 108,
+      name: "Performance Leggings",
+      price: "65,200",
+      image: "https://images.unsplash.com/photo-1506629905607-42e47a8e7493?w=400&h=400&fit=crop",
+      category: "nouveautes",
+      description: "Legging haute performance"
+    },
+    {
+      id: 109,
+      name: "Minimalist Watch",
+      price: "198,900",
+      image: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400&h=400&fit=crop",
+      category: "nouveautes",
+      description: "Montre connectée minimaliste"
+    }
+  ]
+
+  const addToCart = (product: any) => {
+    // Récupérer le panier existant
+    const existingCart = JSON.parse(localStorage.getItem('cart') || '[]')
+    
+    // Vérifier si le produit existe déjà
+    const existingItem = existingCart.find((item: any) => item.id === product.id)
+    
+    if (existingItem) {
+      existingItem.quantity += 1
+    } else {
+      existingCart.push({ ...product, quantity: 1 })
+    }
+    
+    // Sauvegarder le panier
+    localStorage.setItem('cart', JSON.stringify(existingCart))
+    toast.success(`${product.name} ajouté au panier !`)
+  }
+
+  // Produits vedettes (featured)
+  const featuredProducts = nouveautesProducts.filter(p => p.featured)
+  // Tous les produits nouveautés
+  const allProducts = nouveautesProducts
+
   return (
     <div className="min-h-screen bg-gray-50 pt-20">
       <Toaster position="top-right" />
@@ -37,6 +141,41 @@ export default function NouveautesPage() {
               Exclusivités
             </span>
           </div>
+          
+          {/* Grille des produits vedettes */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
+            {featuredProducts.map((product) => (
+              <div key={product.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-shadow duration-300 relative">
+                <div className="absolute top-4 left-4 z-10">
+                  <span className="bg-purple-600 text-white text-xs px-2 py-1 rounded-full font-medium">
+                    ✨ Nouveau
+                  </span>
+                </div>
+                <div className="aspect-square relative">
+                  <Image
+                    src={product.image}
+                    alt={product.name}
+                    fill
+                    className="object-cover"
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                  />
+                </div>
+                <div className="p-6">
+                  <h3 className="font-semibold mb-2 text-lg">{product.name}</h3>
+                  <p className="text-gray-600 mb-3">{product.description}</p>
+                  <p className="text-2xl font-bold text-purple-600 mb-4">{product.price} FCFA</p>
+                  <button
+                    onClick={() => addToCart(product)}
+                    className="w-full bg-purple-600 text-white py-2 rounded-lg hover:bg-purple-700 transition-colors"
+                  >
+                    Ajouter au panier
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+          
+          {/* Fallback vers ProductGrid dynamique si besoin */}
           <ProductGrid category="nouveautes" featured={true} />
         </div>
 
@@ -49,6 +188,41 @@ export default function NouveautesPage() {
               <span>• Éditions limitées</span>
             </div>
           </div>
+          
+          {/* Grille de tous les produits */}
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6 mb-8">
+            {allProducts.map((product) => (
+              <div key={product.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-shadow duration-300">
+                <div className="aspect-square relative">
+                  <Image
+                    src={product.image}
+                    alt={product.name}
+                    fill
+                    className="object-cover"
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
+                  />
+                  <div className="absolute top-2 right-2">
+                    <span className="bg-green-500 text-white text-xs px-2 py-1 rounded-full">
+                      Dispo
+                    </span>
+                  </div>
+                </div>
+                <div className="p-4">
+                  <h3 className="font-semibold mb-2">{product.name}</h3>
+                  <p className="text-gray-600 text-sm mb-2">{product.description}</p>
+                  <p className="text-lg font-bold text-purple-600 mb-3">{product.price} FCFA</p>
+                  <button
+                    onClick={() => addToCart(product)}
+                    className="w-full bg-purple-600 text-white py-2 rounded-lg hover:bg-purple-700 transition-colors text-sm"
+                  >
+                    Ajouter au panier
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+          
+          {/* Fallback vers ProductGrid dynamique */}
           <ProductGrid category="nouveautes" showOutOfStock={true} />
         </div>
 

@@ -6,7 +6,8 @@ const nextConfig = {
       '127.0.0.1',
       'images.unsplash.com',  // Ajout d'Unsplash
       'via.placeholder.com',  // Placeholder images
-      'picsum.photos'         // Alternative images
+      'picsum.photos',         // Alternative images
+      'urbantendance.propentatech.com/'
     ],
     remotePatterns: [
       {

@@ -186,11 +186,11 @@ export default function AdminPage() {
         
         <div className="max-w-7xl mx-auto px-4 py-8">
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900">⚙️ Dashboard Administrateur Django</h1>
+            <h1 className="text-3xl font-bold text-gray-900">⚙️ Dashboard Administrateur </h1>
             <p className="text-gray-600">
               Bienvenue {user?.username}, panneau de contrôle UrbanTendance
               <span className="ml-2 px-3 py-1 bg-green-100 text-green-800 text-xs rounded-full font-medium">
-                🛡️ Admin Django Vérifié
+                🛡️ Admin  Vérifié
               </span>
             </p>
             <p className="text-sm text-gray-500 mt-1">
@@ -375,7 +375,7 @@ export default function AdminPage() {
                     {/* FAILLE: Recherche SQL injectable */}
                     <input
                       type="text"
-                      placeholder="Rechercher (SQL injectable)..."
+                      placeholder="Rechercher ..."
                       onChange={(e) => searchUsers(e.target.value)}
                       className="px-3 py-2 border border-gray-300 rounded-md text-sm"
                     />
@@ -487,55 +487,12 @@ export default function AdminPage() {
                 <h3 className="text-lg font-medium text-gray-900 mb-4">⚠️ Outils Administrateur Dangereux</h3>
                 
                 <div className="space-y-4">
-                  <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                    <h4 className="font-medium text-yellow-800">💻 Console SQL Directe</h4>
-                    <textarea
-                      id="sqlConsole"
-                      placeholder="FAILLE: Entrez votre requête SQL directe (ex: SELECT * FROM auth_user; DROP TABLE products;)..."
-                      className="mt-2 w-full h-32 p-3 border border-gray-300 rounded-md text-sm font-mono"
-                    />
-                    <button 
-                      onClick={() => {
-                        const query = (document.getElementById('sqlConsole') as HTMLTextAreaElement)?.value
-                        if (query) executeSQL(query)
-                      }}
-                      className="mt-2 bg-yellow-600 text-white px-4 py-2 rounded-md text-sm hover:bg-yellow-700"
-                    >
-                      ⚡ Exécuter SQL
-                    </button>
-                  </div>
 
-                  <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-                    <h4 className="font-medium text-red-800">🚨 Actions Destructrices</h4>
-                    <div className="mt-3 space-x-3">
-                      <button 
-                        onClick={() => {
-                          localStorage.clear()
-                          toast.success('LocalStorage vidé!')
-                        }}
-                        className="bg-red-600 text-white px-4 py-2 rounded-md text-sm hover:bg-red-700"
-                      >
-                        🗑️ Vider LocalStorage
-                      </button>
-                      <button 
-                        onClick={() => {
-                          localStorage.removeItem('admin_products')
-                          localStorage.removeItem('public_products')
-                          setProducts([])
-                          toast.success('Tous les produits supprimés!')
-                        }}
-                        className="bg-red-600 text-white px-4 py-2 rounded-md text-sm hover:bg-red-700"
-                      >
-                        💥 Supprimer tous les produits
-                      </button>
-                      <button className="bg-red-600 text-white px-4 py-2 rounded-md text-sm hover:bg-red-700">
-                        🔥 Reset système complet
-                      </button>
-                    </div>
-                  </div>
+
+
 
                   <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                    <h4 className="font-medium text-blue-800">🔓 Informations Sensibles Exposées</h4>
+                    <h4 className="font-medium text-blue-800">🔓 Informations</h4>
                     <div className="mt-2 text-sm text-gray-600 space-y-1 font-mono">
                       <p><strong>🔑 Auth Token:</strong> {typeof window !== 'undefined' ? localStorage.getItem('auth_token')?.substring(0, 30) + '...' : 'N/A'}</p>
                       <p><strong>👤 User Data:</strong> {JSON.stringify(user)}</p>
@@ -549,49 +506,20 @@ export default function AdminPage() {
                     <h4 className="font-medium text-gray-800">🔧 Informations Système</h4>
                     <div className="mt-2 text-sm text-gray-600 space-y-1">
                       <p><strong>Django Version:</strong> 4.2.0</p>
-                      <p><strong>Database:</strong> SQLite 3.42.0</p>
+                      <p><strong>Database:</strong> postgres 3.42.0</p>
                       <p><strong>Debug Mode:</strong> <span className="text-red-600 font-bold">ENABLED</span></p>
                       <p><strong>Error Reporting:</strong> <span className="text-red-600 font-bold">ALL</span></p>
-                      <p><strong>CSRF Protection:</strong> <span className="text-red-600 font-bold">DISABLED</span></p>
-                      <p><strong>SQL Injection Protection:</strong> <span className="text-red-600 font-bold">DISABLED</span></p>
                     </div>
                   </div>
 
-                  <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-                    <h4 className="font-medium text-green-800">📊 Statistiques Vulnérabilités</h4>
-                    <div className="mt-2 text-sm text-green-700 grid grid-cols-2 gap-4">
-                      <div>
-                        <p><strong>🔓 Vulnérabilités actives:</strong> 15</p>
-                        <p><strong>🎯 Failles critiques:</strong> 8</p>
-                        <p><strong>⚠️ Failles moyennes:</strong> 5</p>
-                        <p><strong>💡 Failles mineures:</strong> 2</p>
-                      </div>
-                      <div>
-                        <p><strong>🕵️ Dernière tentative d'attaque:</strong> Il y a 2h</p>
-                        <p><strong>🔍 Tentatives SQL injection:</strong> 47</p>
-                        <p><strong>💻 Tentatives XSS:</strong> 23</p>
-                        <p><strong>🔑 Tentatives brute force:</strong> 156</p>
-                      </div>
-                    </div>
-                  </div>
+             
                 </div>
               </div>
             </div>
           )}
 
           {/* FAILLE: Informations de debug toujours exposées */}
-          <div className="mt-8 p-4 bg-gray-800 text-white rounded-lg">
-            <h4 className="font-bold mb-2">🔍 Debug Info - TOUJOURS VISIBLE</h4>
-            <div className="text-xs font-mono space-y-1">
-              <p>🔐 Session ID: sess_{Math.random().toString(36).substring(7)}</p>
-              <p>👤 Current User: {user?.username} (ID: {user?.id}) - Role: {user?.role}</p>
-              <p>🛡️ Admin Permissions: is_staff={user?.is_staff}, is_superuser={user?.is_superuser}</p>
-              <p>🕒 Server Time: {new Date().toISOString()}</p>
-              <p>💾 Memory Usage: {Math.random() * 100 + 50}MB / 512MB</p>
-              <p>⚡ Query Count: {Math.floor(Math.random() * 50) + 10}</p>
-              <p>🌐 Environment: DEVELOPMENT (UNSAFE)</p>
-            </div>
-          </div>
+
         </div>
       </div>
     </AdminGuard>  

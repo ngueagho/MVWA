@@ -30,20 +30,107 @@ export default function HomePage() {
       }
     } catch (error) {
       console.error('Erreur lors du chargement des produits:', error)
-      // Fallback avec des produits de démonstration
+      // Fallback avec des produits de démonstration incluant des images toutes différentes
       setFeaturedProducts([
-        { id: 1, name: "Hoodie Urban Premium", price: 89.99, category: "Streetwear" },
-        { id: 2, name: "Sneakers Elite Runner", price: 159.99, discount_price: 129.99, category: "Sneakers" },
-        { id: 3, name: "Jean Slim Premium", price: 120.00, category: "Denim" },
-        { id: 4, name: "Casquette Street", price: 45.00, category: "Accessoires" },
-        { id: 5, name: "T-shirt Graphique", price: 35.99, category: "Streetwear" },
-        { id: 6, name: "Sac Urban", price: 79.99, category: "Accessoires" },
-        { id: 7, name: "Veste Bomber", price: 199.99, discount_price: 149.99, category: "Streetwear" },
-        { id: 8, name: "Baskets High-Top", price: 189.99, category: "Sneakers" }
+        { 
+          id: 1, 
+          name: "Hoodie Urban Premium", 
+          price: 89.99, 
+          category: "Streetwear",
+          image: "https://images.unsplash.com/photo-1618354691373-d851c5c3a990?w=400&h=400&fit=crop"
+        },
+        { 
+          id: 2, 
+          name: "Sneakers Elite Runner", 
+          price: 159.99, 
+          discount_price: 129.99, 
+          category: "Sneakers",
+          image: "https://images.unsplash.com/photo-1600185365483-26d7a4cc7519?w=400&h=400&fit=crop"
+        },
+        { 
+          id: 3, 
+          name: "Jean Slim Premium", 
+          price: 120.00, 
+          category: "Denim",
+          image: "https://images.unsplash.com/photo-1475178626620-a4d074967452?w=400&h=400&fit=crop"
+        },
+        { 
+          id: 4, 
+          name: "Casquette Street", 
+          price: 45.00, 
+          category: "Accessoires",
+          image: "https://images.unsplash.com/photo-1622434641406-a158123450f9?w=400&h=400&fit=crop"
+        },
+        { 
+          id: 5, 
+          name: "T-shirt Graphique", 
+          price: 35.99, 
+          category: "Streetwear",
+          image: "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=400&h=400&fit=crop"
+        },
+        { 
+          id: 6, 
+          name: "Sac Urban", 
+          price: 79.99, 
+          category: "Accessoires",
+          image: "https://images.unsplash.com/photo-1571781926291-c477ebfd024b?w=400&h=400&fit=crop"
+        },
+        { 
+          id: 7, 
+          name: "Veste Bomber", 
+          price: 199.99, 
+          discount_price: 149.99, 
+          category: "Streetwear",
+          image: "https://images.unsplash.com/photo-1551028719-00167b16eac5?w=400&h=400&fit=crop"
+        },
+        { 
+          id: 8, 
+          name: "Baskets High-Top", 
+          price: 189.99, 
+          category: "Sneakers",
+          image: "https://images.unsplash.com/photo-1539185441755-769473a23570?w=400&h=400&fit=crop"
+        }
       ])
     } finally {
       setLoading(false)
     }
+  }
+
+  // Fonction pour générer une image par défaut basée sur la catégorie avec plus de variété
+  const getDefaultImage = (category, productName) => {
+    const categoryImages = {
+      'Streetwear': [
+        'https://images.unsplash.com/photo-1509631179647-0177331693ae?w=400&h=400&fit=crop',
+        'https://images.unsplash.com/photo-1622445275576-721325763afe?w=400&h=400&fit=crop',
+        'https://images.unsplash.com/photo-1583743814966-8936f37f4678?w=400&h=400&fit=crop',
+        'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400&h=400&fit=crop',
+        'https://images.unsplash.com/photo-1576566588028-4147f3842f27?w=400&h=400&fit=crop'
+      ],
+      'Sneakers': [
+        'https://images.unsplash.com/photo-1608231387042-66d1773070a5?w=400&h=400&fit=crop',
+        'https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?w=400&h=400&fit=crop',
+        'https://images.unsplash.com/photo-1606107557195-0e29a4b5b4aa?w=400&h=400&fit=crop',
+        'https://images.unsplash.com/photo-1460353581641-37baddab0fa2?w=400&h=400&fit=crop',
+        'https://images.unsplash.com/photo-1552346154-21d32810aba3?w=400&h=400&fit=crop'
+      ],
+      'Denim': [
+        'https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?w=400&h=400&fit=crop',
+        'https://images.unsplash.com/photo-1576995853123-5a10305d93c0?w=400&h=400&fit=crop',
+        'https://images.unsplash.com/photo-1582552938357-32b906df40cb?w=400&h=400&fit=crop',
+        'https://images.unsplash.com/photo-1604176354204-9268737828e4?w=400&h=400&fit=crop',
+        'https://images.unsplash.com/photo-1542272604-787c3835535d?w=400&h=400&fit=crop'
+      ],
+      'Accessoires': [
+        'https://images.unsplash.com/photo-1563170351-be82bc888aa4?w=400&h=400&fit=crop',
+        'https://images.unsplash.com/photo-1491637639811-60e2756cc1c7?w=400&h=400&fit=crop',
+        'https://images.unsplash.com/photo-1521369909029-2afed882baee?w=400&h=400&fit=crop',
+        'https://images.unsplash.com/photo-1506629905962-c5f0bee5a7b0?w=400&h=400&fit=crop',
+        'https://images.unsplash.com/photo-1588850561407-ed78c282e89b?w=400&h=400&fit=crop'
+      ]
+    }
+    
+    const images = categoryImages[category] || ['https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=400&h=400&fit=crop']
+    return images[Math.floor(Math.random() * images.length)]
   }
 
   const categories = [
@@ -98,21 +185,35 @@ export default function HomePage() {
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
-      <section className="hero-section">
-        <div className="hero-content">
-          <h1 className="hero-title">
-            <span className="block">Urban</span>
+      <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
+        {/* Background Image */}
+        <div className="absolute inset-0">
+          <Image
+            src="https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1920&h=1080&fit=crop"
+            alt="Urban Fashion Background"
+            fill
+            className="object-cover"
+            priority
+          />
+          {/* Overlay gradient */}
+          <div className="absolute inset-0 bg-gradient-to-r from-blue-600/80 via-purple-600/70 to-blue-800/80"></div>
+        </div>
+        
+        {/* Content */}
+        <div className="relative z-10 text-center px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto">
+          <h1 className="text-5xl md:text-7xl font-bold font-display mb-6">
+            <span className="block text-white">Urban</span>
             <span className="block text-white">Tendance</span>
           </h1>
-          <p className="hero-subtitle">
+          <p className="text-xl md:text-2xl text-white/90 mb-8 max-w-2xl mx-auto">
             Découvrez notre collection exclusive de mode urbaine haut de gamme
           </p>
-          <div className="hero-buttons">
-            <Link href="/nouveautes" className="btn-primary">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link href="/nouveautes" className="inline-flex items-center justify-center px-8 py-4 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors duration-300">
               Découvrir la Collection
               <ChevronRightIcon className="w-5 h-5 ml-2" />
             </Link>
-            <Link href="/about" className="btn-secondary">
+            <Link href="/about" className="inline-flex items-center justify-center px-8 py-4 bg-white/10 text-white font-medium rounded-lg border border-white/20 hover:bg-white/20 transition-colors duration-300 backdrop-blur-sm">
               Notre Histoire
             </Link>
           </div>
@@ -170,12 +271,29 @@ export default function HomePage() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
               {featuredProducts.map((product) => (
                 <div key={product.id} className="product-card">
-                  <div className="product-image">
-                    <div 
-                      className="w-full h-full bg-gradient-to-br from-blue-100 to-purple-100 flex items-center justify-center text-gray-500 font-medium"
-                    >
-                      {product.name?.split(' ')[0] || 'Produit'}
-                    </div>
+                  <div className="product-image relative overflow-hidden">
+                    {product.image ? (
+                      <Image
+                        src={product.image}
+                        alt={product.name}
+                        fill
+                        className="object-cover hover:scale-105 transition-transform duration-300"
+                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
+                      />
+                    ) : (
+                      <Image
+                        src={getDefaultImage(product.category, product.name)}
+                        alt={product.name}
+                        fill
+                        className="object-cover hover:scale-105 transition-transform duration-300"
+                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
+                      />
+                    )}
+                    {product.discount_price && (
+                      <div className="absolute top-2 right-2 bg-red-500 text-white px-2 py-1 rounded-md text-xs font-medium">
+                        -{Math.round(((product.price - product.discount_price) / product.price) * 100)}%
+                      </div>
+                    )}
                   </div>
                   <div className="product-info">
                     <h3 className="product-name">{product.name}</h3>
